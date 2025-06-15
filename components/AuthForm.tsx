@@ -75,7 +75,6 @@ const AuthForm = ({ type }: { type: FormType }) => {
       setErrorMessage("")
       try {
         const user = await signInUser({ email: values.email });
-        console.log(user)
         if (user.accountId) {
           setAccountId(user.accountId)
         }

@@ -74,3 +74,18 @@ declare interface ShareInputProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: (email: string) => void;
 }
+
+declare interface User {
+  id: string,
+  fullname: string,
+  email: string,
+  avatar: string,
+  logInMethod: "OAuth" | "credential"
+}
+
+declare interface Passwords {
+  userId: string,
+  hash: string
+}
+
+// see the road map in ipad

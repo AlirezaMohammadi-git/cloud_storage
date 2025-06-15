@@ -12,21 +12,21 @@ import { convertFileSize, getUsageSummary } from "@/lib/utils";
 
 const Dashboard = async () => {
   // Parallel requests
-  const [files, totalSpace] = await Promise.all([
-    getFiles({ types: [], limit: 10 }),
-    getTotalSpaceUsed(),
-  ]);
+  // const [files, totalSpace] = await Promise.all([
+  //   getFiles({ types: [], limit: 10 }),
+  //   getTotalSpaceUsed(),
+  // ]);
 
   // Get usage summary
-  const usageSummary = getUsageSummary(totalSpace);
+  // const usageSummary = getUsageSummary(totalSpace);
 
   return (
     <div className="dashboard-container">
       <section>
-        <Chart used={totalSpace.used} />
+        {/* <Chart used={totalSpace.used} /> */}
 
         {/* Uploaded file type summaries */}
-        <ul className="dashboard-summary-list">
+        {/* <ul className="dashboard-summary-list">
           {usageSummary.map((summary) => (
             <Link
               href={summary.url}
@@ -56,11 +56,11 @@ const Dashboard = async () => {
               </div>
             </Link>
           ))}
-        </ul>
+        </ul> */}
       </section>
 
       {/* Recent files uploaded */}
-      <section className="dashboard-recent-files">
+      {/* <section className="dashboard-recent-files">
         <h2 className="h3 xl:h2 text-light-100">Recent files uploaded</h2>
         {files.documents.length > 0 ? (
           <ul className="mt-5 flex flex-col gap-5">
@@ -93,7 +93,7 @@ const Dashboard = async () => {
         ) : (
           <p className="empty-list">No files uploaded</p>
         )}
-      </section>
+      </section> */}
     </div>
   );
 };

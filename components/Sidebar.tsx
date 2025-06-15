@@ -14,8 +14,6 @@ interface Props {
 
 const Sidebar = ({ fullname, avatar, email }: Props) => {
   const pathname = usePathname();
-  console.log(fullname)
-
   return (
     <aside className="sidebar">
       <Link href="/">

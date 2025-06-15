@@ -1,3 +1,5 @@
+import bcrypt from "bcryptjs";
+
 export const navItems = [
   {
     name: "Dashboard",
@@ -85,3 +87,28 @@ export const avatarPlaceholderUrl =
   "https://img.freepik.com/free-psd/3d-illustration-person-with-sunglasses_23-2149436188.jpg";
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+
+export const users: User[] = [
+  {
+    id: "e64c54ae-36ad-4adb-932a-76d949f6104f",
+    fullname: "testUser",
+    email: "test@user.com",
+    avatar: "null",
+    logInMethod: "OAuth"
+  },
+  {
+    id: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
+    fullname: "testUser2",
+    email: "test2@user.com",
+    avatar: "null",
+    logInMethod: "credential"
+  }
+]
+
+export const passwords: Passwords[] = [
+  {
+    userId: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
+    hash: bcrypt.hashSync("123456789")
+  }
+]
