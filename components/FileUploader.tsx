@@ -7,18 +7,9 @@ import { Button } from "@/components/ui/button";
 import { convertFileToUrl, getFileType } from "@/lib/utils";
 import Image from "next/image";
 import Thumbnail from "@/components/Thumbnail";
-import { MAX_FILE_SIZE } from "@/constants";
 import { usePathname } from "next/navigation";
-import { toast } from "sonner";
-import { uploadFile } from "@/lib/actions/file.actions";
 
-interface Props {
-  ownerId: string;
-  accountId: string;
-  className?: string;
-}
-
-const FileUploader = ({ ownerId, accountId, className }: Props) => {
+const FileUploader = () => {
   const [files, setFiles] = useState<File[]>([]);
   const path = usePathname();
 
@@ -28,70 +19,8 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
       console.log(acceptedFiles[0].type);
       setFiles(acceptedFiles);
 
-      //fixme: check if file is already uploaded. (network error in previous upload)
-      try {
-        const uploadPromise = acceptedFiles.map(async (f) => {
-          if (f.size > MAX_FILE_SIZE) {
-            setFiles((prev) => prev.filter((file) => file.name !== f.name));
-            return toast("", {
-              description: (
-                <p className="body-2 text-white">
-                  <span className="font-semibold">{f.name}</span>
-                  {` is too large. Max file size is ${MAX_FILE_SIZE / 1000000} MB.`}
-                </p>
-              ),
-              duration: 5000,
-              className: "error-toast",
-            });
-          }
-
-          // uploading file:
-          return await uploadFile({
-            file: f,
-            ownerId,
-            accountId,
-            path,
-          }).then((res) => {
-            if (res.success) {
-              setFiles((prev) => prev.filter((file) => file.name !== f.name));
-              toast.success("", {
-                description: (
-                  <p className="body-2 text-green">
-                    <span className="font-semibold">{f.name}</span>
-                    {" uploaded successfully."}
-                  </p>
-                ),
-                duration: 5000,
-              });
-            } else {
-              setFiles((prev) => prev.filter((file) => file.name !== f.name));
-              toast.error("", {
-                description: (
-                  <p className="body-2 text-error">
-                    <span className="font-semibold text-black">{f.name}</span>
-                    {" failed to upload."}
-                  </p>
-                ),
-                duration: 5000,
-              });
-            }
-          });
-        });
-        await Promise.all(uploadPromise);
-      } catch (err) {
-        setFiles([]);
-        toast.error("", {
-          description: (
-            <p className="body-2 text-black">
-              <span className="font-semibold text-error">Error:</span>
-              {`Failed to upload file.`}
-            </p>
-          ),
-          duration: 5000,
-        });
-      }
     },
-    [path, ownerId, accountId],
+    [path],
   );
 
   const handleRemoveFile = (

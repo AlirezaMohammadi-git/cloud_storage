@@ -16,19 +16,15 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import FileUploader from "@/components/FileUploader";
-import { signOutUser } from "@/lib/actions/user.actions";
+import { signOut } from "@/auth";
 
 interface Props {
-  $id: string;
-  accountId: string;
   fullname: string;
   avatar: string;
   email: string;
 }
 
 const MobileNavigation = ({
-  $id,
-  accountId,
   fullname,
   avatar,
   email,
@@ -48,7 +44,7 @@ const MobileNavigation = ({
 
 
       <div className="flex-center flex-row gap-5">
-        <FileUploader ownerId={$id} accountId={accountId} />
+        <FileUploader />
 
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger>
@@ -115,7 +111,7 @@ const MobileNavigation = ({
                 <Button
                   type="submit"
                   className="mobile-sign-out-button"
-                  onClick={async () => await signOutUser()}
+                  onClick={async () => await signOut()}
                 >
                   <Image
                     src="/assets/icons/logout.svg"
