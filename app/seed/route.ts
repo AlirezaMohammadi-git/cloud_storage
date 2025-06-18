@@ -1,67 +1,75 @@
 
 
 import { passwords, users } from '@/constants';
-import postgres from 'postgres';
+import { Client } from 'pg'
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
-
-async function seedUsers() {
-    await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
-    await sql`
+async function seedUsers(client: Client) {
+  await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+  await client.query(`
     CREATE TABLE IF NOT EXISTS users (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-      fullname VARCHAR(255) NOT NULL,
+      full_name VARCHAR(255) NOT NULL,
       email TEXT NOT NULL UNIQUE,
       avatar TEXT NOT NULL UNIQUE,
-      logInMehtod TEXT NOT NULL
+      log_in_method TEXT NOT NULL
     );
-  `;
+  `);
 
-    const insertedUsers = await Promise.all(
-        users.map(async (user) => {
-            return sql`
-        INSERT INTO users (id, fullname, email, avatar,logInMethod)
-        VALUES (${user.id}, ${user.fullname}, ${user.email}, ${user.avatar}, ${user.logInMethod})
+  const insertedUsers = await Promise.all(
+    users.map(async (user) => {
+      return client.query(`
+        INSERT INTO users (id, full_name, email, avatar,log_in_method)
+        VALUES ($1,$2,$3,$4,$5)
         ON CONFLICT (id) DO NOTHING;
-      `;
-        }),
-    );
+      `, [user.id, user.fullname, user.email, user.avatar, user.logInMethod]);
+    }),
+  );
 
-    return insertedUsers;
+  return insertedUsers;
 }
 
 
-async function seedPasswords() {
-    await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
-    await sql`
-    CREATE TABLE IF NOT EXISTS passwords (
-      userId UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+async function seedPasswords(client: Client) {
+  await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+  await client.query(
+    `
+    CREATE TABLE IF NOT EXISTS user_passwords (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
       hash TEXT NOT NULL
     );
-  `;
+  `
+  );
 
-    const insertedPassword = await Promise.all(
-        passwords.map(async (pass) => {
-            return sql`
-        INSERT INTO passwords (userId, hash)
-        VALUES (${pass.userId},${pass.hash})
+  const insertedPassword = await Promise.all(
+    passwords.map(async (pass) => {
+      return client.query(
+        `
+        INSERT INTO user_passwords (id, hash)
+        VALUES ($1,$2)
         ON CONFLICT (id) DO NOTHING;
-      `;
-        }),
-    );
+      `,
+        [pass.userId, pass.hash]
+      );
+    }),
+  );
 
-    return insertedPassword;
+  return insertedPassword;
 }
 
 export async function GET() {
-    try {
-        const result = await sql.begin(() => [
-            seedUsers(),
-            seedPasswords(),
-        ]);
+  const client = new Client({
+    connectionString: 'postgres://joe:helloKitty@localhost:5432/mylocaldatabase'
+  });
+  client.connect();
+  try {
 
-        return Response.json({ message: 'Database seeded successfully', data: result });
-    } catch (error) {
-        return Response.json({ error }, { status: 500 });
-    }
+    await seedUsers(client)
+    await seedPasswords(client)
+
+    return Response.json({ message: 'Database seeded successfully' });
+  } catch (error) {
+    return Response.json({ error: error }, { status: 500 });
+  } finally {
+    client.end()
+  }
 }
