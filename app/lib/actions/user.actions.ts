@@ -7,9 +7,6 @@ import { parseStringify } from "@/lib/utils";
 import { cookies } from "next/headers";
 import { avatarPlaceholderUrl } from "@/constants";
 import { redirect } from "next/navigation";
-import postgres from "postgres"
-import bcrypt from "bcryptjs"
-
 //#########################################################################################################
 
 const getUserByEmail = async (email: string) => {
@@ -146,49 +143,9 @@ export const signInUser = async ({ email }: { email: string }) => {
   }
 };
 
+
 //#########################################################################################################
 
-
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" })
-// use only for credential method:
-export async function getUserFromDb(email: string) {
-  try {
-    const user = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
-
-    // user not existes
-    if (!user || user.length === 0) return null;
-
-    return user[0];
-  } catch (err) {
-    console.log("Failed to load user from db.", err)
-    throw new Error("Failed to load user from db.")
-  }
-}
-export async function comparePasswords(userId: string, password: string) {
-  try {
-
-    const hash = await sql<Passwords[]>`SELECT * FROM user_passwords WHERE id=${userId}`
-
-    if (hash.length <= 0) return null;
-
-    return await bcrypt.compare(password, hash[0].hash);
-
-  } catch (err) {
-    console.log("Failed to load password from db.(user not found)", err)
-    throw new Error("Failed to load password from db.(user not found)")
-  }
-}
-// this function will use in credential method signIn
-export async function authenticate(email: string, password: string) {
-
-  const user = await getUserFromDb(email);
-
-  // user not found;
-  if (!user) return null;
-
-  const result = await comparePasswords(user.id, password)
-
-  return result ? user : null;
-
-}
-export async function InsertNewUser(user: User) { }
+// export const createNewUser = async (user: User, password: string | undefined) => {
+//   InsertNewUser(user, password);
+// }

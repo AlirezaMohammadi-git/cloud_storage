@@ -108,7 +108,7 @@ export const users: User[] = [
 
 export const passwords: Passwords[] = [
   {
-    userId: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
+    id: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
     hash: bcrypt.hashSync("123456789")
   }
 ]

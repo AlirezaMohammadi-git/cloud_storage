@@ -3,8 +3,11 @@
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useActionState, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import {
   Form,
   FormControl,
@@ -13,12 +16,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { createAccount, signInUser } from "@/lib/actions/user.actions";
-import OtpModal from "@/components/OTPModal";
+import { uuidv4 } from "@/lib/utils";
+import { avatarPlaceholderUrl } from "@/constants";
+import { authenticate, InsertNewUser } from "@/app/lib/actions/user.db";
+import { signIn } from "@/auth";
+import { useSearchParams } from "next/navigation";
+import { providerMap } from "@/auth.config";
+import { Separator } from "@radix-ui/react-separator";
 
 type FormType = "sign-in" | "sign-up";
 
@@ -29,15 +33,26 @@ const authFormSchema = (formType: FormType) => {
       formType === "sign-up"
         ? z.string().min(2).max(50)
         : z.string().optional(),
+    password:
+      formType === "sign-up"
+        ? z.string().min(6).max(50)
+        : z.string().optional(),
+    showPassword:
+      formType === "sign-up"
+        ? z.boolean()
+        : z.boolean().optional()
   });
 };
 
 
 const AuthForm = ({ type }: { type: FormType }) => {
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [accountId, setAccountId] = useState('')
+  const [inputType, setInputType] = useState("password")
+  const [state, formAction, isPending] = useActionState(authenticate, undefined)
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const error = searchParams.get("error")
+
 
   const formSchema = authFormSchema(type)
   // 1. Define your form.
@@ -45,60 +60,24 @@ const AuthForm = ({ type }: { type: FormType }) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullname: "",
-      email: ""
+      email: "",
+      password: "",
+      showPassword: false
     },
   })
-
-  // 2. Define a submit handler.
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (type === "sign-up") {
-      setIsLoading(true)
-      setErrorMessage("")
-      try {
-        const user = await createAccount({
-          fullName: values.fullname || "",
-          email: values.email
-        })
-        if (user.accountId) {
-          setAccountId(user.accountId)
-        } else if (user.error) {
-          setErrorMessage(user.error)
-        }
-      } catch (err) {
-        setErrorMessage("Failed to create account. Please try again later!")
-      } finally {
-        setIsLoading(false)
-      }
-    } else if (type === "sign-in") {
-      setIsLoading(true)
-      setErrorMessage("")
-      try {
-        const user = await signInUser({ email: values.email });
-        if (user.accountId) {
-          setAccountId(user.accountId)
-        }
-        if (user.error) {
-          setErrorMessage(user.error)
-        }
-      } catch (err) {
-        console.log(err)
-        setErrorMessage("Something went wrong! Please try again later.")
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  }
 
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-3/4 max-w-[500]">
+        <form action={formAction} className="space-y-3 w-5/6 sm:w-3/6 max-w-[600]">
 
           <h1 className="form-title">{type === "sign-in" ? "Log In" : "Create Account"}</h1>
 
           {type === "sign-up" &&
             <>
 
+              <input type="hidden" name="method" value={"credentials"} />
+              <input type="hidden" name="type" value={"sign-up"} />
               <FormField
                 control={form.control}
                 name="fullname"
@@ -122,18 +101,63 @@ const AuthForm = ({ type }: { type: FormType }) => {
                     <FormLabel className="shad-form-label">Email</FormLabel>
                     <FormControl>
                       <div className="shad-form-item">
-                        <Input type="email" required className="shad-input" placeholder="Enter your email" {...field} />
+                        <Input type="email" required className="shad-input" placeholder="Enter your email" {...field} disabled={isPending} />
                       </div>
                     </FormControl>
 
                     <FormMessage className="shad-form-message" />
                   </FormItem>
                 )} />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="shad-form-label">Password</FormLabel>
+                    <FormControl>
+                      <div className="shad-form-item">
+                        <Input type={inputType} required className="shad-input" placeholder="Enter your password" {...field} disabled={isPending} />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="shad-form-message" />
+                  </FormItem>
+                )} />
+
+
+              <FormField
+                control={form.control}
+                name="showPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex flex-row items-center gap-3 pl-2">
+                      <FormControl>
+                        <Input
+                          type="checkbox"
+                          defaultChecked={false}
+                          className="w-5"
+                          onClick={() => {
+                            if (inputType === "password") {
+                              setInputType("text")
+                            } else {
+                              setInputType("password")
+                            }
+                          }} />
+                      </FormControl>
+                      <FormLabel >show password</FormLabel>
+                    </div>
+
+                  </FormItem>
+                )} />
+
             </>
           }
 
           {type === "sign-in" &&
             <>
+
+              <input type="hidden" name="method" value={"credentials"} />
+              <input type="hidden" name="type" value={"sign-in"} />
               <FormField
                 control={form.control}
                 name="email"
@@ -142,19 +166,60 @@ const AuthForm = ({ type }: { type: FormType }) => {
                     <FormLabel className="shad-form-label">Email</FormLabel>
                     <FormControl>
                       <div className="shad-form-item">
-                        <Input type="email" required className="shad-input" placeholder="Enter your email" {...field} />
+                        <Input type="email" required className="shad-input" placeholder="Enter your email" {...field} disabled={isPending} />
                       </div>
                     </FormControl>
 
                     <FormMessage className="shad-form-message" />
                   </FormItem>
                 )} />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="shad-form-label">Password</FormLabel>
+                    <FormControl>
+                      <div className="shad-form-item">
+                        <Input type={inputType} required className="shad-input" placeholder="Enter your password" {...field} disabled={isPending} />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="shad-form-message" />
+                  </FormItem>
+                )} />
+
+
+              <FormField
+                control={form.control}
+                name="showPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex flex-row items-center gap-3 pl-2">
+                      <FormControl>
+                        <Input
+                          type="checkbox"
+                          defaultChecked={false}
+                          className="w-5"
+                          onClick={() => {
+                            if (inputType === "password") {
+                              setInputType("text")
+                            } else {
+                              setInputType("password")
+                            }
+                          }} />
+                      </FormControl>
+                      <FormLabel >show password</FormLabel>
+                    </div>
+
+                  </FormItem>
+                )} />
+
             </>}
 
-
-          <Button className="form-submit-button" type="submit" disabled={isLoading}>
+          <Button className="form-submit-button" type="submit" disabled={isPending}>
             {type === "sign-in" ? "Log In" : "Create"}
-            {isLoading &&
+            {isPending &&
               <Image
                 src="/assets/icons/loader.svg"
                 alt="loader"
@@ -164,7 +229,8 @@ const AuthForm = ({ type }: { type: FormType }) => {
               />}
           </Button>
 
-          {errorMessage && <p className="error-message">{errorMessage}</p>}
+          {state && <p className="error-message">{state}</p>}
+          {error && <p className="error-message">{error}</p>}
 
           <div className="body-2 flex justify-center">
             <p className="text-light-100">{
@@ -178,13 +244,21 @@ const AuthForm = ({ type }: { type: FormType }) => {
           </div>
         </form>
       </Form>
-
+      <div className="w-5/6 sm:w-3/6 flex flex-row justify-between items-center px-6 my-3">
+        <Separator className=" w-full h-0.5 rounded-full bg-gray-300" />
+        <p className="px-2 text-gray-500">OR</p>
+        <Separator className=" w-full h-0.5 rounded-full bg-gray-300" />
+      </div>
       {
-        accountId && (
-          <OtpModal accountId={accountId} email={form.getValues("email")} />
-        )
+        Object.values(providerMap).map(provider => (
+          <form action={formAction} key={provider.id} className="space-y-3 w-5/6 sm:w-3/6 max-w-[600]">
+            <input type="hidden" name="method" value={"OAuth"} />
+            <input type="hidden" name="providerId" value={provider.id} />
+            <input type="hidden" name="redirectTo" value={callbackUrl} />
+            <Button className="form-submit-button">{provider.name}</Button>
+          </form>
+        ))
       }
-
     </>
   )
 

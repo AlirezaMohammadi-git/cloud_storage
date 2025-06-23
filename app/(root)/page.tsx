@@ -7,7 +7,7 @@ import { Chart } from "@/components/Chart";
 import { FormattedDateTime } from "@/components/FormattedDateTime";
 import { Thumbnail } from "@/components/Thumbnail";
 import { Separator } from "@/components/ui/separator";
-import { getFiles, getTotalSpaceUsed } from "@/lib/actions/file.actions";
+import { getFiles, getTotalSpaceUsed } from "@/app/lib/actions/file.actions";
 import { convertFileSize, getUsageSummary } from "@/lib/utils";
 
 const Dashboard = async () => {

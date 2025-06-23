@@ -8,14 +8,15 @@ import { signOut } from "@/auth";
 const Header = () => {
   return (
     <header className="header">
-      <Search />
+      {/* <Search /> */}
       <div className="header-wrapper">
         <FileUploader />
         <form
           action={async () => {
             "use server";
-
-            await signOut();
+            await signOut({
+              redirectTo: "/sign-in"
+            });
           }}
         >
           <Button type="submit" className="sign-out-button">

@@ -27,7 +27,7 @@ import {
   deleteFile,
   renameFile,
   updateFileUsers,
-} from "@/lib/actions/file.actions";
+} from "@/app/lib/actions/file.actions";
 import { usePathname } from "next/navigation";
 import { FileDetails, ShareInput } from "@/components/ActionsModalContent";
 
