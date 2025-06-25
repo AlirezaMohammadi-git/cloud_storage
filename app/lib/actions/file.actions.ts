@@ -6,59 +6,13 @@ import { appwriteConfig } from "@/lib/appwrite/config";
 import { ID, Models, Query } from "node-appwrite";
 import { constructFileUrl, getFileType, parseStringify } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/actions/user.actions";
+import path from "path"
+import { mkdir, writeFile, readdir } from "fs/promises";
+import { existsSync } from "fs";
 
 const handleError = (error: unknown, message: string) => {
     console.log(error, message);
     throw error;
-};
-
-export const uploadFile = async ({
-    file,
-    ownerId,
-    accountId,
-    path,
-}: UploadFileProps) => {
-    const { storage, databases } = await createAdminClient();
-
-    try {
-        const inputFile = InputFile.fromBuffer(file, file.name);
-
-        const bucketFile = await storage.createFile(
-            appwriteConfig.bucketId,
-            ID.unique(),
-            inputFile,
-        );
-
-        const fileDocument = {
-            type: getFileType(bucketFile.name).type,
-            name: bucketFile.name,
-            url: constructFileUrl(bucketFile.$id),
-            extension: getFileType(bucketFile.name).extension,
-            size: bucketFile.sizeOriginal,
-            owner: ownerId,
-            accountId,
-            users: [],
-            bucketFileId: bucketFile.$id,
-        };
-
-        const newFile = await databases
-            .createDocument(
-                appwriteConfig.databaseId,
-                appwriteConfig.filesCollectionId,
-                ID.unique(),
-                fileDocument,
-            )
-            .catch(async (error: unknown) => {
-                await storage.deleteFile(appwriteConfig.bucketId, bucketFile.$id);
-                handleError(error, "Failed to create file document");
-            });
-
-        revalidatePath(path);
-        return parseStringify(newFile);
-    } catch (error) {
-        handleError(error, "Failed to upload file");
-    }
 };
 
 const createQueries = (
@@ -88,34 +42,6 @@ const createQueries = (
     }
 
     return queries;
-};
-
-export const getFiles = async ({
-    types = [],
-    searchText = "",
-    sort = "$createdAt-desc",
-    limit,
-}: GetFilesProps) => {
-    const { databases } = await createAdminClient();
-
-    try {
-        const currentUser = await getCurrentUser();
-
-        if (!currentUser) throw new Error("User not found");
-
-        const queries = createQueries(currentUser, types, searchText, sort, limit);
-
-        const files = await databases.listDocuments(
-            appwriteConfig.databaseId,
-            appwriteConfig.filesCollectionId,
-            queries,
-        );
-
-        console.log({ files });
-        return parseStringify(files);
-    } catch (error) {
-        handleError(error, "Failed to get files");
-    }
 };
 
 export const renameFile = async ({
@@ -197,13 +123,13 @@ export const deleteFile = async ({
 export async function getTotalSpaceUsed() {
     try {
         const { databases } = await createSessionClient();
-        const currentUser = await getCurrentUser();
-        if (!currentUser) throw new Error("User is not authenticated.");
+        // const currentUser = await getCurrentUser();
+        // if (!currentUser) throw new Error("User is not authenticated.");
 
         const files = await databases.listDocuments(
             appwriteConfig.databaseId,
             appwriteConfig.filesCollectionId,
-            [Query.equal("owner", [currentUser.$id])],
+            [Query.equal("owner", ["user id"])],
         );
 
         const totalSpace = {
@@ -234,3 +160,78 @@ export async function getTotalSpaceUsed() {
         handleError(error, "Error calculating total space used:, ");
     }
 }
+
+
+//################## Uploading proccess #######################
+
+export const uploadFile = async ({
+    file,
+    userId
+}: UploadFileProps) => {
+    try {
+        const fileName = file.name.replaceAll(" ", "_")
+        const dirPath = path.join(process.cwd(), `uploads/${userId}`)
+        if (!existsSync(dirPath)) {
+            await mkdir(dirPath);
+        }
+        const filePath = path.join(process.cwd(), `uploads/${userId}/` + fileName)
+        const buffer = Buffer.from(await file.arrayBuffer());
+        await writeFile(filePath, buffer);
+        revalidatePath('/')
+        const result: FileResult = { success: true, data: fileName }
+        return result;
+    } catch (err) {
+        console.log(err)
+        return { success: false, error: "Something went wrong. File didn't uploaded!" } as FileResult;
+    }
+};
+
+//################## Get files proccess #######################
+export const getFiles = async ({
+    userId,
+    types = [],
+    searchText = "",
+    sort = "$createdAt-desc",
+    limit,
+}: GetFilesProps) => {
+
+    const dirPath = path.join(process.cwd(), `uploads/${userId}/`)
+    const userDir = existsSync(dirPath)
+
+    if (!userDir) return { success: true, data: [] } as FileResult;
+
+    try {
+
+        const filesInDir = await readdir(dirPath);
+        return { success: true, data: filesInDir } as FileResult;
+
+    } catch (err) {
+        handleError(err, "can't read files from server!")
+        return { success: false, error: "can't read files from server!" } as FileResult;
+    }
+    // try {
+    //     const currentUser = await getCurrentUser();
+
+    //     if (!currentUser) throw new Error("User not found");
+
+    //     const queries = createQueries(currentUser, types, searchText, sort, limit);
+
+    //     const files = await databases.listDocuments(
+    //         appwriteConfig.databaseId,
+    //         appwriteConfig.filesCollectionId,
+    //         queries,
+    //     );
+
+    //     console.log({ files });
+    //     return parseStringify(files);
+    // } catch (error) {
+    //     handleError(error, "Failed to get files");
+    // }
+};
+
+
+
+
+
+// todo : ## extract the structure of file uploading system from this file.
+// todo : ## define types needed for file system. 

@@ -8,17 +8,33 @@ import { convertFileToUrl, getFileType } from "@/lib/utils";
 import Image from "next/image";
 import Thumbnail from "@/components/Thumbnail";
 import { usePathname } from "next/navigation";
+import { uploadFile } from "@/app/lib/actions/file.actions";
 
-const FileUploader = () => {
+const FileUploader = ({ userId }: { userId: string }) => {
   const [files, setFiles] = useState<File[]>([]);
   const path = usePathname();
+  const [error, setError] = useState("")
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       // Do something with the files
-      console.log(acceptedFiles[0].type);
-      setFiles(acceptedFiles);
-
+      console.log(acceptedFiles);
+      acceptedFiles.forEach(async (file) => {
+        try {
+          setFiles(acceptedFiles);
+          const result = await uploadFile({ file: file, userId: userId });
+          if (result.success) {
+            setFiles(prev => {
+              return prev.filter(file => file.name !== result.data as string)
+            })
+          } else {
+            setError(result?.error)
+          }
+        } catch (err) {
+          console.log(err);
+          setError(`Something went wrong.`)
+        }
+      })
     },
     [path],
   );

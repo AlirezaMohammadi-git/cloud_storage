@@ -15,17 +15,18 @@ export const enviroments = {
 }
 
 export const providers: Provider[] = [
-    GitHub({
-        clientId: enviroments.githubClientId,
-        clientSecret: enviroments.githubSecret,
-    }),
-    Google({
-        clientId: enviroments.googleClientId,
-        clientSecret: enviroments.googleSecret,
-        async profile(profile) {
-            return { hospital: "hello", ...profile }
-        }
-    })]
+    // GitHub({
+    //     clientId: enviroments.githubClientId,
+    //     clientSecret: enviroments.githubSecret,
+    // }),
+    // Google({
+    //     clientId: enviroments.googleClientId,
+    //     clientSecret: enviroments.googleSecret,
+    //     async profile(profile) {
+    //         return { hospital: "hello", ...profile }
+    //     }
+    // })
+]
 
 
 export const providerMap = providers

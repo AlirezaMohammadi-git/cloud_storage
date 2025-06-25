@@ -244,11 +244,17 @@ const AuthForm = ({ type }: { type: FormType }) => {
           </div>
         </form>
       </Form>
-      <div className="w-5/6 sm:w-3/6 flex flex-row justify-between items-center px-6 my-3">
-        <Separator className=" w-full h-0.5 rounded-full bg-gray-300" />
-        <p className="px-2 text-gray-500">OR</p>
-        <Separator className=" w-full h-0.5 rounded-full bg-gray-300" />
-      </div>
+
+      {
+        providerMap.length > 0 && (
+          <div className="w-5/6 sm:w-3/6 flex flex-row justify-between items-center px-6 my-3">
+            <Separator className=" w-full h-0.5 rounded-full bg-gray-300" />
+            <p className="px-2 text-gray-500">OR</p>
+            <Separator className=" w-full h-0.5 rounded-full bg-gray-300" />
+          </div>
+        )
+      }
+
       {
         Object.values(providerMap).map(provider => (
           <form action={formAction} key={provider.id} className="space-y-3 w-5/6 sm:w-3/6 max-w-[600]">

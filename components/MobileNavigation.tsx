@@ -9,29 +9,30 @@ import {
 } from "@/components/ui/sheet";
 import Image from "next/image";
 import React, { useState } from "react";
-import { usePathname } from "next/navigation";
+import { notFound, usePathname } from "next/navigation";
 import { Separator } from "@radix-ui/react-separator";
 import { navItems } from "@/constants";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import FileUploader from "@/components/FileUploader";
-import { signOut } from "@/auth";
+import { auth, signOut } from "@/auth";
 
 interface Props {
+  id: string,
   fullname: string;
   avatar: string;
   email: string;
 }
 
 const MobileNavigation = ({
+  id,
   fullname,
   avatar,
   email,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-
   return (
     <header className="mobile-header">
       <Image
@@ -44,7 +45,7 @@ const MobileNavigation = ({
 
 
       <div className="flex-center flex-row gap-5">
-        <FileUploader />
+        <FileUploader {...{ userId: id }} />
 
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger>

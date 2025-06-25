@@ -3,14 +3,15 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Search from "@/components/Search";
 import FileUploader from "@/components/FileUploader";
-import { signOut } from "@/auth";
+import { auth, signOut } from "@/auth";
+import { notFound } from "next/navigation";
 
-const Header = () => {
+const Header = ({ id }: { id: string }) => {
   return (
     <header className="header">
       {/* <Search /> */}
       <div className="header-wrapper">
-        <FileUploader />
+        <FileUploader {...{ userId: id }} />
         <form
           action={async () => {
             "use server";

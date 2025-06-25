@@ -7,7 +7,6 @@ import { parseStringify } from "@/lib/utils";
 import { cookies } from "next/headers";
 import { avatarPlaceholderUrl } from "@/constants";
 import { redirect } from "next/navigation";
-//#########################################################################################################
 
 const getUserByEmail = async (email: string) => {
   const { databases } = await createAdminClient();
@@ -143,9 +142,3 @@ export const signInUser = async ({ email }: { email: string }) => {
   }
 };
 
-
-//#########################################################################################################
-
-// export const createNewUser = async (user: User, password: string | undefined) => {
-//   InsertNewUser(user, password);
-// }

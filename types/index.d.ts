@@ -5,6 +5,14 @@ import NextAuth from "next-auth";
 declare global {
   declare type FileType = "document" | "image" | "video" | "audio" | "other";
 
+  declare type FileResult = {
+    success: true,
+    data: unknown,
+  } | {
+    success: false,
+    error: string
+  }
+
   declare interface ActionType {
     label: string;
     icon: string;
@@ -16,11 +24,10 @@ declare global {
   }
   declare interface UploadFileProps {
     file: File;
-    ownerId: string;
-    accountId: string;
-    path: string;
+    userId: string;
   }
   declare interface GetFilesProps {
+    userId: string,
     types: FileType[];
     searchText?: string;
     sort?: string;
