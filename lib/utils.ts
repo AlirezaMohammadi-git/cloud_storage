@@ -1,3 +1,4 @@
+import { getAllFilesSizes } from "@/app/lib/actions/file.actions";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -67,12 +68,10 @@ export const getFileType = (fileName: string) => {
   const videoExtensions = ["mp4", "avi", "mov", "mkv", "webm"];
   const audioExtensions = ["mp3", "wav", "ogg", "flac"];
 
-  if (documentExtensions.includes(extension))
-    return { type: "document", extension };
+  if (documentExtensions.includes(extension)) return { type: "document", extension };
   if (imageExtensions.includes(extension)) return { type: "image", extension };
   if (videoExtensions.includes(extension)) return { type: "video", extension };
   if (audioExtensions.includes(extension)) return { type: "audio", extension };
-
   return { type: "other", extension };
 };
 
@@ -194,36 +193,43 @@ export const constructDownloadUrl = (bucketFileId: string) => {
 };
 
 // DASHBOARD UTILS
-export const getUsageSummary = (totalSpace: any) => {
+export const getUsageSummary = async (fileNames: string[], userId: string) => {
+  const images = fileNames.filter(fileName => getFileType(fileName).type === "image")
+  const videos = fileNames.filter(fileName => getFileType(fileName).type === "video")
+  const audios = fileNames.filter(fileName => getFileType(fileName).type === "audio")
+  const documents = fileNames.filter(fileName => getFileType(fileName).type === "document")
+  const other = fileNames.filter(fileName => getFileType(fileName).type === "other")
+
+  const imageSize = await getAllFilesSizes({ userId: userId, fileNames: images })
+  const videoSize = await getAllFilesSizes({ userId: userId, fileNames: videos })
+  const audioSize = await getAllFilesSizes({ userId: userId, fileNames: audios })
+  const documentSize = await getAllFilesSizes({ userId: userId, fileNames: documents })
+  const otherSize = await getAllFilesSizes({ userId: userId, fileNames: other })
+
+  const mediaSize = (videoSize.success ? videoSize.data as number : 0) + (audioSize.success ? audioSize.data as number : 0);
+
   return [
     {
       title: "Documents",
-      size: totalSpace.document.size,
-      latestDate: totalSpace.document.latestDate,
+      size: documentSize.success ? documentSize.data as number : 0,
       icon: "/assets/icons/file-document-light.svg",
       url: "/documents",
     },
     {
       title: "Images",
-      size: totalSpace.image.size,
-      latestDate: totalSpace.image.latestDate,
+      size: imageSize.success ? imageSize.data as number : 0,
       icon: "/assets/icons/file-image-light.svg",
       url: "/images",
     },
     {
       title: "Media",
-      size: totalSpace.video.size + totalSpace.audio.size,
-      latestDate:
-        totalSpace.video.latestDate > totalSpace.audio.latestDate
-          ? totalSpace.video.latestDate
-          : totalSpace.audio.latestDate,
+      size: mediaSize as number,
       icon: "/assets/icons/file-video-light.svg",
       url: "/media",
     },
     {
       title: "Others",
-      size: totalSpace.other.size,
-      latestDate: totalSpace.other.latestDate,
+      size: otherSize.success ? otherSize.data as number : 0,
       icon: "/assets/icons/file-other-light.svg",
       url: "/others",
     },

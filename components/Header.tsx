@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 const Header = ({ id }: { id: string }) => {
   return (
     <header className="header">
-      {/* <Search /> */}
+      <Search />
       <div className="header-wrapper">
         <FileUploader {...{ userId: id }} />
         <form

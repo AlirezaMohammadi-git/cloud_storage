@@ -1,13 +1,12 @@
 "use server";
 
-import { createAdminClient, createSessionClient } from "@/lib/appwrite";
-import { InputFile } from "node-appwrite/file";
+import { createAdminClient } from "@/lib/appwrite";
 import { appwriteConfig } from "@/lib/appwrite/config";
-import { ID, Models, Query } from "node-appwrite";
-import { constructFileUrl, getFileType, parseStringify } from "@/lib/utils";
+import { Models, Query } from "node-appwrite";
+import { convertFileSize, parseStringify } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import path from "path"
-import { mkdir, writeFile, readdir } from "fs/promises";
+import { mkdir, writeFile, readdir, readFile } from "fs/promises";
 import { existsSync } from "fs";
 
 const handleError = (error: unknown, message: string) => {
@@ -120,50 +119,76 @@ export const deleteFile = async ({
 };
 
 // ============================== TOTAL FILE SPACE USED
-export async function getTotalSpaceUsed() {
-    try {
-        const { databases } = await createSessionClient();
-        // const currentUser = await getCurrentUser();
-        // if (!currentUser) throw new Error("User is not authenticated.");
+export async function getTotalSpaceUsed({ userId }: { userId: string }) {
+    const dirPath = path.join(process.cwd(), `uploads/${userId}/`);
+    const userDirExists = existsSync(dirPath);
 
-        const files = await databases.listDocuments(
-            appwriteConfig.databaseId,
-            appwriteConfig.filesCollectionId,
-            [Query.equal("owner", ["user id"])],
+    if (!userDirExists) return { success: true, data: 0 } as FileResult;
+
+    try {
+        const filesInDir = await readdir(dirPath);
+
+        const fileSizes = await Promise.all(
+            filesInDir.map(async (fileName) => {
+                const filePath = path.join(dirPath, fileName);
+                const buffer = await readFile(filePath);
+                return buffer.byteLength; // Use byteLength instead of converting to Blob + File
+            })
         );
 
-        const totalSpace = {
-            image: { size: 0, latestDate: "" },
-            document: { size: 0, latestDate: "" },
-            video: { size: 0, latestDate: "" },
-            audio: { size: 0, latestDate: "" },
-            other: { size: 0, latestDate: "" },
-            used: 0,
-            all: 2 * 1024 * 1024 * 1024 /* 2GB available bucket storage */,
-        };
+        const totalUsedSize = fileSizes.reduce((acc, size) => acc + size, 0);
 
-        files.documents.forEach((file) => {
-            const fileType = file.type as FileType;
-            totalSpace[fileType].size += file.size;
-            totalSpace.used += file.size;
-
-            if (
-                !totalSpace[fileType].latestDate ||
-                new Date(file.$updatedAt) > new Date(totalSpace[fileType].latestDate)
-            ) {
-                totalSpace[fileType].latestDate = file.$updatedAt;
-            }
-        });
-
-        return parseStringify(totalSpace);
-    } catch (error) {
-        handleError(error, "Error calculating total space used:, ");
+        return { success: true, data: totalUsedSize } as FileResult;
+    } catch (err) {
+        console.error(err);
+        return { success: false, error: "Couldn't get total files size!" } as FileResult;
     }
+}
+export async function getFileSize({ userId, fileName }: { userId: string, fileName: string }) {
+    const filePath = path.join(process.cwd(), `uploads/${userId}/${fileName}`);
+    const userFileExists = existsSync(filePath);
+
+    if (!userFileExists) return { success: true, data: 0 } as FileResult;
+
+    try {
+
+        const buffer = await readFile(filePath);
+
+        return { success: true, data: buffer.byteLength } as FileResult;
+
+    } catch (err) {
+        console.log(err);
+        return { success: false, error: "Couldn't get file size!" } as FileResult;
+    }
+
+
+}
+export async function getAllFilesSizes({ userId, fileNames }: { userId: string, fileNames: string[] }) {
+
+    try {
+        const totalSizes = await Promise.all(
+            fileNames.map(async (filename) => {
+                const filePath = path.join(process.cwd(), `uploads/${userId}/${filename}`);
+                const buffer = await readFile(filePath);
+                return buffer.byteLength;
+            })
+        );
+
+        const totalSize = totalSizes.reduce((previous, current) => previous + current, 0)
+
+        return { success: true, data: totalSize } as FileResult;
+
+    } catch (err) {
+        console.log(err);
+        return { success: false, error: "Couldn't get sizes!" } as FileResult;
+    }
+
+
 }
 
 
-//################## Uploading proccess #######################
 
+//################## Uploading proccess #######################
 export const uploadFile = async ({
     file,
     userId
