@@ -3,8 +3,12 @@
 import NextAuth from "next-auth";
 
 declare global {
-  declare type FileType = "document" | "image" | "video" | "audio" | "other";
 
+
+
+
+  //################  files related types
+  declare type FileType = "document" | "image" | "video" | "audio" | "other";
   declare type FileResult = {
     success: true,
     data: unknown,
@@ -12,12 +16,29 @@ declare global {
     success: false,
     error: string
   }
-
   declare interface ActionType {
     label: string;
     icon: string;
     value: string;
   }
+  declare interface FileMeataData {
+    id: string,
+    name: string,
+    type: FileType,
+    url: string,
+    size: number,
+    dateAdded: Date,
+    owners: string[]
+  }
+  // Define a type for PostgreSQL errors
+  type PostgresError = {
+    code: string; // PostgreSQL error code (like "23505" for unique violation)
+    message: string;
+    // Add other properties you need
+  };
+
+
+  //################  function propes
   declare interface SearchParamProps {
     params?: Promise<SegmentParams>;
     searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -78,7 +99,7 @@ declare global {
     onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onRemove: (email: string) => void;
   }
-
+  //################ Authentication Users
   declare interface User {
     id: string;
     fullname: string;

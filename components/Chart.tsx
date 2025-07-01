@@ -68,8 +68,8 @@ export const Chart = ({ used = 0 }: { used: number }) => {
                         >
                           {used && calculatePercentage(used)
                             ? calculatePercentage(used)
-                                .toString()
-                                .replace(/^0+/, "")
+                              .toString()
+                              .replace(/^0+/, "")
                             : "0"}
                           %
                         </tspan>
@@ -92,7 +92,7 @@ export const Chart = ({ used = 0 }: { used: number }) => {
       <CardHeader className="chart-details">
         <CardTitle className="chart-title">Available Storage</CardTitle>
         <CardDescription className="chart-description">
-          {used ? convertFileSize(used) : "2GB"} / 2GB
+          {used ? convertFileSize((1024 * 1024 * 1024 * 2) - used, 2) : "2GB"} / 2GB
         </CardDescription>
       </CardHeader>
     </Card>

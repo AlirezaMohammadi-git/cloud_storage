@@ -14,11 +14,10 @@ export default auth(async function middleware(req) {
     const isAuthRoute = nextUrl.pathname.includes("/sign")
     const loginUrl = absoluteUrl("/sign-in")
     const dashboardUrl = absoluteUrl("/")
-    // making sure don't block auth handlers:
-    const isApiRoute = nextUrl.pathname.includes("/auth")
 
-    // skip middleware for api routes.
-    if (isApiRoute) return;
+
+    // making sure don't block auth handlers:
+    if (nextUrl.pathname.includes("/auth")) return;
 
     // redirecting user from login page to main page after they logged in :
     if (isLoggedIn && isAuthRoute) {

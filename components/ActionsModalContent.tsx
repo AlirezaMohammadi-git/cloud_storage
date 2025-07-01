@@ -24,7 +24,7 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-export const FileDetails = ({ file }: { file: Models.Document }) => {
+export const FileDetails = ({ file }: { file: FileMeataData }) => {
   return (
     <>
       <ImageThumbnail file={file} />
@@ -39,7 +39,7 @@ export const FileDetails = ({ file }: { file: Models.Document }) => {
 };
 
 interface Props {
-  file: Models.Document;
+  file: FileMeataData;
   onInputChange: React.Dispatch<React.SetStateAction<string[]>>;
   onRemove: (email: string) => void;
 }
@@ -47,7 +47,7 @@ interface Props {
 export const ShareInput = ({ file, onInputChange, onRemove }: Props) => {
   return (
     <>
-      <ImageThumbnail file={file} />
+      <ImageThumbnail file={file.name} />
 
       <div className="share-wrapper">
         <p className="subtitle-2 pl-1 text-light-100">

@@ -15,29 +15,47 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Models } from "node-appwrite";
 import { actionsDropdownItems } from "@/constants";
 import Link from "next/link";
-import { constructDownloadUrl } from "@/lib/utils";
+import { cn, constructDownloadUrl } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   deleteFile,
+  getFilePath,
   renameFile,
   updateFileUsers,
 } from "@/app/lib/actions/file.actions";
 import { usePathname } from "next/navigation";
 import { FileDetails, ShareInput } from "@/components/ActionsModalContent";
+import { toast } from "sonner";
 
-const ActionDropdown = ({ file }: { file: Models.Document }) => {
+const ActionDropdown = ({ file }: { file: FileMeataData }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [action, setAction] = useState<ActionType | null>(null);
   const [name, setName] = useState(file.name);
   const [isLoading, setIsLoading] = useState(false);
   const [emails, setEmails] = useState<string[]>([]);
+  const [showToast, setShowToast] = useState({ show: false, message: "", type: "error" });
+
+  useEffect(() => {
+
+    if (showToast.show) {
+      toast(showToast.message, {
+        className: showToast.type === "error" ? "error-toast" : "success-toast",
+        position: "top-center",
+        action: {
+          label: "OK",
+          onClick: () => { }
+        }
+      });
+    }
+
+  }, [showToast])
 
   const path = usePathname();
 
@@ -54,12 +72,17 @@ const ActionDropdown = ({ file }: { file: Models.Document }) => {
     setIsLoading(true);
     let success = false;
 
+    const filePath = await getFilePath({ fileName: file.name, userId: file.owners[0] })
     const actions = {
       rename: () =>
-        renameFile({ fileId: file.$id, name, extension: file.extension, path }),
-      share: () => updateFileUsers({ fileId: file.$id, emails, path }),
-      delete: () =>
-        deleteFile({ fileId: file.$id, bucketFileId: file.bucketFileId, path }),
+        renameFile({ fileId: file.id, name, extension: file.type, path }),
+      share: () => updateFileUsers({ fileId: file.id, emails, path }),
+      delete: async () => {
+        const result = await deleteFile({ fileId: file.id, filePath: filePath })
+        if (result.success) {
+          setShowToast({ show: true, message: `file deleted successfully!`, type: "normal" })
+        }
+      }
     };
 
     success = await actions[action.value as keyof typeof actions]();
@@ -73,7 +96,7 @@ const ActionDropdown = ({ file }: { file: Models.Document }) => {
     const updatedEmails = emails.filter((e) => e !== email);
 
     const success = await updateFileUsers({
-      fileId: file.$id,
+      fileId: file.id,
       emails: updatedEmails,
       path,
     });
@@ -172,7 +195,7 @@ const ActionDropdown = ({ file }: { file: Models.Document }) => {
             >
               {actionItem.value === "download" ? (
                 <Link
-                  href={constructDownloadUrl(file.bucketFileId)}
+                  href={file.url}
                   download={file.name}
                   className="flex items-center gap-2"
                 >

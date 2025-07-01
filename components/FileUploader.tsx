@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
@@ -9,30 +9,29 @@ import Image from "next/image";
 import Thumbnail from "@/components/Thumbnail";
 import { usePathname } from "next/navigation";
 import { uploadFile } from "@/app/lib/actions/file.actions";
+import { toast } from "sonner";
 
 const FileUploader = ({ userId }: { userId: string }) => {
   const [files, setFiles] = useState<File[]>([]);
   const path = usePathname();
-  const [error, setError] = useState("")
+  const [error, setError] = useState({ error: "", fileName: "" })
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      // Do something with the files
-      console.log(acceptedFiles);
+      setFiles(acceptedFiles);
       acceptedFiles.forEach(async (file) => {
         try {
-          setFiles(acceptedFiles);
           const result = await uploadFile({ file: file, userId: userId });
           if (result.success) {
             setFiles(prev => {
               return prev.filter(file => file.name !== result.data as string)
             })
           } else {
-            setError(result?.error)
+            setError({ error: result?.error, fileName: file.name })
           }
         } catch (err) {
-          console.log(err);
-          setError(`Something went wrong.`)
+          console.error(err);
+          setError({ error: `Something went wrong.`, fileName: file.name })
         }
       })
     },
@@ -52,6 +51,28 @@ const FileUploader = ({ userId }: { userId: string }) => {
 
   // if user drag a file over returned HTML, then isDragActive will be true.
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+
+  // show error message to user :
+  useEffect(() => {
+
+    if (error) {
+      setFiles(prev => prev.filter(file => file.name !== error.fileName))
+      toast(error.fileName, {
+        description: error.error,
+        position: "top-center",
+        className: "error-toast",
+        onAutoClose: () => setFiles(prev => prev.filter(file => file.name !== error.fileName)),
+        action: {
+          label: "Ok",
+          onClick: () => {
+            setFiles(prev => prev.filter(file => file.name !== error.fileName))
+          }
+        }
+      })
+    }
+
+  }, [error])
 
   return (
     <div {...getRootProps()}>

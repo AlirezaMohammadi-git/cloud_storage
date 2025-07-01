@@ -1,14 +1,15 @@
 
-import { Pool } from "pg"
+import pg from "pg"
+const { Pool } = pg;
 require('dotenv').config();
 
-const connectionPool = new Pool({
-    connectionString: process.env.POSTGRES_URL,
-    user: process.env.POSTGRES_USER,
-    host: process.env.POSTGRES_HOST,
-    database: process.env.POSTGRES_DATABASE,
-    password: process.env.POSTGRES_PASSWORD,
-    port: 5432,
-});
+const poolConfig = {
+    connectionString: "postgres://joe:helloKitty@localhost:5432/mylocaldatabase"
+};
+export const pool = new Pool(poolConfig);
 
-module.exports = connectionPool;
+// Optional: Handle connection errors
+pool.on('error', (err) => {
+    console.error('Unexpected PostgreSQL pool error:', err);
+    process.exit(-1);
+});

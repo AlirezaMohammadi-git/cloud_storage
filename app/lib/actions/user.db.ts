@@ -4,33 +4,47 @@
 import { signIn } from "@/auth";
 import bcrypt from "bcryptjs"
 import { AuthError } from "next-auth";
-import { Pool } from "pg";
+import { pool } from "@/db";
 
 
 
-const pool = new Pool({
-    connectionString: 'postgres://joe:helloKitty@localhost:5432/mylocaldatabase'
-});
+
 
 // use only for credential method:
-export async function getUserFromDb(email: string) {
+export async function getUserFromDb(email?: string, id?: string): Promise<User | null> {
     const client = await pool.connect()
     try {
-        const result = await client.query(`SELECT * FROM users WHERE email=$1`, [email]);
-        const user = result.rows[0]
-        // user not existes
-        if (!user) return null;
-        const dtoUser: User = {
-            fullname: user.full_name,
-            ...user
+
+        if (email) {
+            const result = await client.query(`SELECT * FROM users WHERE email=$1`, [email]);
+            const user = result.rows[0]
+            // user not existes
+            if (!user) return null;
+            const dtoUser: User = {
+                fullname: user.full_name,
+                ...user
+            }
+
+            return dtoUser;
+        } else if (id) {
+            const result = await client.query(`SELECT * FROM users WHERE id=$1`, [id]);
+            const user = result.rows[0]
+            // user not existes
+            if (!user) return null;
+            const dtoUser: User = {
+                fullname: user.full_name,
+                ...user
+            }
+
+            return dtoUser;
         }
 
-        return dtoUser;
     } catch (err) {
         console.log("Failed to load user from db.", err)
         throw new Error("Failed to load user from db.")
     } finally {
         client.release();
+        return null;
     }
 }
 export async function comparePasswords(userId: string, password: string) {

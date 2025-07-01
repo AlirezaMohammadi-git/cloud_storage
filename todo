@@ -1,0 +1,14 @@
+
+
+
+//todo : implement rename,details and share functionality in 3 dot dropdown.
+
+
+
+//todo : implement search.
+//todo : add limit for uploads (the user should only upload a file with size of less than remaining storage) => disable upload btn while there is no remaining storage
+//todo : show a success dialog when upload was successfull and error when it won't.
+//todo : handle limit for getting files from server(when the count of files increased.)
+//todo : implement file categories pages.
+//todo : add a landing page.
+

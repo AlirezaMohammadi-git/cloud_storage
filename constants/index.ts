@@ -112,3 +112,22 @@ export const passwords: Passwords[] = [
     hash: bcrypt.hashSync("123456789")
   }
 ]
+
+export const exampleFileMetadata: FileMeataData[] = [
+  {
+    id: "e64c54ae-36ad-4adb-932a-76d949f6104f",
+    name: "testMetadata1",
+    type: "image",
+    size: 400000000,
+    url: "null",
+    dateAdded: new Date()
+  },
+  {
+    id: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
+    name: "testMetadata2",
+    type: "document",
+    size: 12345678910,
+    url: "null",
+    dateAdded: new Date()
+  }
+]

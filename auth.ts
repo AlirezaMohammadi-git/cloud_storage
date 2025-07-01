@@ -112,17 +112,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       },
     }),
-    GitHub({
-      clientId: enviroments.githubClientId,
-      clientSecret: enviroments.githubSecret,
-    }),
-    Google({
-      clientId: enviroments.googleClientId,
-      clientSecret: enviroments.googleSecret,
-      async profile(profile) {
-        return { ...profile };
-      },
-    }),
+    // GitHub({
+    //   clientId: enviroments.githubClientId,
+    //   clientSecret: enviroments.githubSecret,
+    // }),
+    // Google({
+    //   clientId: enviroments.googleClientId,
+    //   clientSecret: enviroments.googleSecret,
+    //   async profile(profile) {
+    //     return { ...profile };
+    //   },
+    // }),
   ],
   pages: {
     signIn: "/sign-in",

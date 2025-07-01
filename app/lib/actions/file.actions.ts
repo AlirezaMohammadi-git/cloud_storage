@@ -3,11 +3,21 @@
 import { createAdminClient } from "@/lib/appwrite";
 import { appwriteConfig } from "@/lib/appwrite/config";
 import { Models, Query } from "node-appwrite";
-import { convertFileSize, parseStringify } from "@/lib/utils";
+import { checkErrorCode, getFileType, parseStringify, uuidv4 } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import path from "path"
-import { mkdir, writeFile, readdir, readFile } from "fs/promises";
+import { mkdir, writeFile, readdir, readFile, rm } from "fs/promises";
 import { existsSync } from "fs";
+import { pool } from "@/db";
+import { ca } from "zod/v4/locales";
+import { Finlandica } from "next/font/google";
+
+
+
+
+export async function createFileUrl(userId: string, fileName: string) {
+    return path.join("api", "uploads", userId, fileName);
+}
 
 const handleError = (error: unknown, message: string) => {
     console.log(error, message);
@@ -93,31 +103,6 @@ export const updateFileUsers = async ({
     }
 };
 
-export const deleteFile = async ({
-    fileId,
-    bucketFileId,
-    path,
-}: DeleteFileProps) => {
-    const { databases, storage } = await createAdminClient();
-
-    try {
-        const deletedFile = await databases.deleteDocument(
-            appwriteConfig.databaseId,
-            appwriteConfig.filesCollectionId,
-            fileId,
-        );
-
-        if (deletedFile) {
-            await storage.deleteFile(appwriteConfig.bucketId, bucketFileId);
-        }
-
-        revalidatePath(path);
-        return parseStringify({ status: "success" });
-    } catch (error) {
-        handleError(error, "Failed to rename file");
-    }
-};
-
 // ============================== TOTAL FILE SPACE USED
 export async function getTotalSpaceUsed({ userId }: { userId: string }) {
     const dirPath = path.join(process.cwd(), `uploads/${userId}/`);
@@ -163,12 +148,12 @@ export async function getFileSize({ userId, fileName }: { userId: string, fileNa
 
 
 }
-export async function getAllFilesSizes({ userId, fileNames }: { userId: string, fileNames: string[] }) {
+export async function getAllFilesSizes({ userId, fileNames }: { userId: string, fileNames: FileMeataData[] }) {
 
     try {
         const totalSizes = await Promise.all(
-            fileNames.map(async (filename) => {
-                const filePath = path.join(process.cwd(), `uploads/${userId}/${filename}`);
+            fileNames.map(async (metadata) => {
+                const filePath = path.join(process.cwd(), `uploads/${userId}/${metadata.name}`);
                 const buffer = await readFile(filePath);
                 return buffer.byteLength;
             })
@@ -187,8 +172,77 @@ export async function getAllFilesSizes({ userId, fileNames }: { userId: string, 
 }
 
 
+// DASHBOARD UTILS
+export const getUsageSummary = async (fileNames: FileMeataData[], userId: string) => {
+    const images = fileNames.filter(fileName => fileName.type === "image")
+    const videos = fileNames.filter(fileName => fileName.type === "video")
+    const audios = fileNames.filter(fileName => (fileName).type === "audio")
+    const documents = fileNames.filter(fileName => (fileName).type === "document")
+    const other = fileNames.filter(fileName => (fileName).type === "other")
 
-//################## Uploading proccess #######################
+    const imageSize = await getAllFilesSizes({ userId: userId, fileNames: images })
+    const videoSize = await getAllFilesSizes({ userId: userId, fileNames: videos })
+    const audioSize = await getAllFilesSizes({ userId: userId, fileNames: audios })
+    const documentSize = await getAllFilesSizes({ userId: userId, fileNames: documents })
+    const otherSize = await getAllFilesSizes({ userId: userId, fileNames: other })
+
+    const mediaSize = (videoSize.success ? videoSize.data as number : 0) + (audioSize.success ? audioSize.data as number : 0);
+
+    return [
+        {
+            title: "Documents",
+            size: documentSize.success ? documentSize.data as number : 0,
+            icon: "/assets/icons/file-document-light.svg",
+            url: "/documents",
+        },
+        {
+            title: "Images",
+            size: imageSize.success ? imageSize.data as number : 0,
+            icon: "/assets/icons/file-image-light.svg",
+            url: "/images",
+        },
+        {
+            title: "Media",
+            size: mediaSize as number,
+            icon: "/assets/icons/file-video-light.svg",
+            url: "/media",
+        },
+        {
+            title: "Others",
+            size: otherSize.success ? otherSize.data as number : 0,
+            icon: "/assets/icons/file-other-light.svg",
+            url: "/others",
+        },
+    ];
+};
+
+
+//################## CRUD proccessess #######################
+async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> {
+    try {
+        await pool.query(`INSERT INTO files_metadata ( id, name , fType, url, size, date_added,owners)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+          ON CONFLICT (id) DO NOTHING;`, [metadata.id, metadata.name, metadata.type, metadata.url, metadata.size, metadata.dateAdded, metadata.owners])
+
+        return { success: true, data: metadata } as FileResult;
+
+    } catch (err) {
+
+        console.error(err);
+
+        // Type guard for PostgreSQL errors
+        if (err instanceof Error && 'code' in err) {
+            const pgError = err as PostgresError;
+            if (pgError.code === "23505") {
+                return { success: false, error: "File already exists!" } as FileResult;
+            }
+        }
+
+
+        return { success: false, error: "Failed to add metadata to database." } as FileResult;
+    }
+
+}
 export const uploadFile = async ({
     file,
     userId
@@ -196,12 +250,26 @@ export const uploadFile = async ({
     try {
         const fileName = file.name.replaceAll(" ", "_")
         const dirPath = path.join(process.cwd(), `uploads/${userId}`)
-        if (!existsSync(dirPath)) {
-            await mkdir(dirPath);
-        }
+        if (!existsSync(dirPath)) await mkdir(dirPath);
         const filePath = path.join(process.cwd(), `uploads/${userId}/` + fileName)
         const buffer = Buffer.from(await file.arrayBuffer());
+        const metaData: FileMeataData = {
+            id: uuidv4(),
+            name: fileName,
+            type: getFileType(fileName).type as FileType,
+            size: buffer.byteLength,
+            url: await createFileUrl(userId, fileName),
+            dateAdded: new Date(),
+            owners: [userId]
+        }
+
+        const metaResult = await uploadFileMetaData(metaData);
+        console.log(metaResult)
+        if (!metaResult?.success) return metaResult as FileResult;
+
+        // ## save file (buffer) in given path (filePath);
         await writeFile(filePath, buffer);
+        // ## save file metadata in database
         revalidatePath('/')
         const result: FileResult = { success: true, data: fileName }
         return result;
@@ -211,52 +279,81 @@ export const uploadFile = async ({
     }
 };
 
-//################## Get files proccess #######################
+
 export const getFiles = async ({
     userId,
     types = [],
     searchText = "",
-    sort = "$createdAt-desc",
+    sort = "",
     limit,
-}: GetFilesProps) => {
+}: GetFilesProps): Promise<FileResult> => {
 
     const dirPath = path.join(process.cwd(), `uploads/${userId}/`)
     const userDir = existsSync(dirPath)
 
+    // user doesn't have any file!
     if (!userDir) return { success: true, data: [] } as FileResult;
 
     try {
 
-        const filesInDir = await readdir(dirPath);
-        return { success: true, data: filesInDir } as FileResult;
+        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owners=$1`, [[userId]])
+        const dtoData = filesInDir.rows.map(data => {
+            return {
+                type: data.ftype,
+                dateAdded: data.date_added,
+                ...data
+            } as FileMeataData;
+        });
+        return { success: true, data: dtoData as FileMeataData[] } as FileResult;
 
     } catch (err) {
         handleError(err, "can't read files from server!")
         return { success: false, error: "can't read files from server!" } as FileResult;
     }
-    // try {
-    //     const currentUser = await getCurrentUser();
-
-    //     if (!currentUser) throw new Error("User not found");
-
-    //     const queries = createQueries(currentUser, types, searchText, sort, limit);
-
-    //     const files = await databases.listDocuments(
-    //         appwriteConfig.databaseId,
-    //         appwriteConfig.filesCollectionId,
-    //         queries,
-    //     );
-
-    //     console.log({ files });
-    //     return parseStringify(files);
-    // } catch (error) {
-    //     handleError(error, "Failed to get files");
-    // }
 };
 
+export async function getFilePath({ fileName, userId }: { fileName: string, userId: string }) {
+    return path.join(process.cwd(), "uploads", userId, fileName);
+}
+async function deleteFileMetadata(fileId: string): Promise<FileResult> {
+
+    try {
+        const data = await pool.query(`DELETE FROM files_metadata WHERE id=$1`, [fileId]);
+        return { success: true, data: data } as FileResult;
+    } catch (err) {
+        console.error(err);
+        return { success: false, error: "Couldn't delete the file!" } as FileResult;
+    }
+
+}
+export async function deleteFile({ filePath, fileId }: { filePath: string, fileId: string }): Promise<FileResult> {
+    try {
+        try {
+            await rm(filePath, {
+                force: true,
+                maxRetries: 2,
+                recursive: true,
+                retryDelay: 100,
+            });
+
+            // delete metadata after phisical one removed:
+            const metaResult = await deleteFileMetadata(fileId);
+            if (!metaResult.success) {
+                return metaResult;
+            }
 
 
 
+        } catch (fsError) {
+            console.error(`Failed to delete file at ${filePath}:`, fsError);
+            return { success: false, error: "Physical file couldn't be removed." };
+        }
 
-// todo : ## extract the structure of file uploading system from this file.
-// todo : ## define types needed for file system. 
+        revalidatePath("/")
+        return { success: true, data: null };
+
+    } catch (err) {
+        console.error('Unexpected error in deleteFile:', err);
+        return { success: false, error: "Couldn't delete file!" };
+    }
+} 

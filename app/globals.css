@@ -419,7 +419,11 @@
   }
 
   .error-toast {
-    @apply bg-red !rounded-[10px] !important;
+    @apply text-gray-200 font-black text-base bg-error !rounded-[10px] !important;
+  }
+
+  .success-toast {
+    @apply text-gray-700 font-black text-base bg-green !rounded-[10px] !important;
   }
 
   /* Header */

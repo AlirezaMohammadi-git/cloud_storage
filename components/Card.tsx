@@ -1,17 +1,17 @@
 import { Models } from "node-appwrite";
 import Link from "next/link";
 import Thumbnail from "@/components/Thumbnail";
-import { convertFileSize } from "@/lib/utils";
+import { convertFileSize, getFileType } from "@/lib/utils";
 import FormattedDateTime from "@/components/FormattedFileSize";
 import ActionDropdown from "@/components/ActionDropdown";
 
-const Card = ({ file }: { file: Models.Document }) => {
+const Card = ({ file }: { file: FileMeataData }) => {
   return (
     <Link href={file.url} target="_blank" className="file-card">
       <div className="flex justify-between">
         <Thumbnail
           type={file.type}
-          extension={file.extension}
+          extension={getFileType(file.name).extension}
           url={file.url}
           className="!size-20"
           imageClassName="!size-11"
@@ -26,11 +26,11 @@ const Card = ({ file }: { file: Models.Document }) => {
       <div className="file-card-details">
         <p className="subtitle-2 line-clamp-1">{file.name}</p>
         <FormattedDateTime
-          date={file.$createdAt}
+          creationDate={file.dateAdded}
           className="body-2 text-light-100"
         />
         <p className="caption line-clamp-1 text-light-200">
-          By: {file.owner.fullName}
+          By: {file.owners[0]}
         </p>
       </div>
     </Link>

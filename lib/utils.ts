@@ -1,13 +1,11 @@
-import { getAllFilesSizes } from "@/app/lib/actions/file.actions";
+import { FileTextIcon } from "@radix-ui/react-icons";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-export const parseStringify = (value: unknown) =>
-  JSON.parse(JSON.stringify(value));
-
+export const parseStringify = (value: unknown) => JSON.parse(JSON.stringify(value));
 
 export const convertFileToUrl = (file: File) => URL.createObjectURL(file);
 
@@ -68,11 +66,11 @@ export const getFileType = (fileName: string) => {
   const videoExtensions = ["mp4", "avi", "mov", "mkv", "webm"];
   const audioExtensions = ["mp3", "wav", "ogg", "flac"];
 
-  if (documentExtensions.includes(extension)) return { type: "document", extension };
-  if (imageExtensions.includes(extension)) return { type: "image", extension };
-  if (videoExtensions.includes(extension)) return { type: "video", extension };
-  if (audioExtensions.includes(extension)) return { type: "audio", extension };
-  return { type: "other", extension };
+  if (documentExtensions.includes(extension)) return { type: "document" as FileType, extension };
+  if (imageExtensions.includes(extension)) return { type: "image" as FileType, extension };
+  if (videoExtensions.includes(extension)) return { type: "video" as FileType, extension };
+  if (audioExtensions.includes(extension)) return { type: "audio" as FileType, extension };
+  return { type: "other" as FileType, extension };
 };
 
 export const formatDateTime = (isoString: string | null | undefined) => {
@@ -192,50 +190,6 @@ export const constructDownloadUrl = (bucketFileId: string) => {
   return `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_APPWRITE_BUCKET}/files/${bucketFileId}/download?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT}`;
 };
 
-// DASHBOARD UTILS
-export const getUsageSummary = async (fileNames: string[], userId: string) => {
-  const images = fileNames.filter(fileName => getFileType(fileName).type === "image")
-  const videos = fileNames.filter(fileName => getFileType(fileName).type === "video")
-  const audios = fileNames.filter(fileName => getFileType(fileName).type === "audio")
-  const documents = fileNames.filter(fileName => getFileType(fileName).type === "document")
-  const other = fileNames.filter(fileName => getFileType(fileName).type === "other")
-
-  const imageSize = await getAllFilesSizes({ userId: userId, fileNames: images })
-  const videoSize = await getAllFilesSizes({ userId: userId, fileNames: videos })
-  const audioSize = await getAllFilesSizes({ userId: userId, fileNames: audios })
-  const documentSize = await getAllFilesSizes({ userId: userId, fileNames: documents })
-  const otherSize = await getAllFilesSizes({ userId: userId, fileNames: other })
-
-  const mediaSize = (videoSize.success ? videoSize.data as number : 0) + (audioSize.success ? audioSize.data as number : 0);
-
-  return [
-    {
-      title: "Documents",
-      size: documentSize.success ? documentSize.data as number : 0,
-      icon: "/assets/icons/file-document-light.svg",
-      url: "/documents",
-    },
-    {
-      title: "Images",
-      size: imageSize.success ? imageSize.data as number : 0,
-      icon: "/assets/icons/file-image-light.svg",
-      url: "/images",
-    },
-    {
-      title: "Media",
-      size: mediaSize as number,
-      icon: "/assets/icons/file-video-light.svg",
-      url: "/media",
-    },
-    {
-      title: "Others",
-      size: otherSize.success ? otherSize.data as number : 0,
-      icon: "/assets/icons/file-other-light.svg",
-      url: "/others",
-    },
-  ];
-};
-
 export const getFileTypesParams = (type: string) => {
   switch (type) {
     case "documents":
@@ -259,4 +213,15 @@ export function uuidv4() {
 
 export function absoluteUrl(path: string) {
   return `${process.env.NEXT_PUBLIC_APP_URL}${path}`
+}
+
+export function checkErrorCode(err: unknown, code: string, returnObj: unknown) {
+  // Type guard for PostgreSQL errors
+  if (err instanceof Error && 'code' in err) {
+    const pgError = err as PostgresError;
+
+    if (pgError.code === code) {
+      return returnObj;
+    } else throw err;
+  }
 }
