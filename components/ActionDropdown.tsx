@@ -17,10 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Models } from "node-appwrite";
 import { actionsDropdownItems } from "@/constants";
 import Link from "next/link";
-import { cn, constructDownloadUrl } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,18 +38,37 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
   const [name, setName] = useState(file.name);
   const [isLoading, setIsLoading] = useState(false);
   const [emails, setEmails] = useState<string[]>([]);
-  const [showToast, setShowToast] = useState({ message: "", type: "error" });
+  const [showToast, setShowToast] = useState({ show: false, message: "", type: "error" });
 
   useEffect(() => {
 
-    toast(showToast.message, {
-      className: showToast.type === "error" ? "error-toast" : "success-toast",
-      position: "top-center",
-      action: {
-        label: "OK",
-        onClick: () => { }
+    // showToast.show prevent repead
+    if (showToast.show) {
+      if (showToast.type === "success") {
+        toast.success(
+          showToast.message, {
+          className: "success-toast",
+          position: "top-center",
+          action: {
+            label: "OK",
+            onClick: () => { }
+          }
+        }
+        )
+      } else if (showToast.type === "error") {
+        toast.error(
+          showToast.message, {
+          position: "top-center",
+          className: "error-toast",
+          action: {
+            label: "OK",
+            onClick: () => { }
+          }
+        }
+        )
       }
-    });
+    }
+
 
   }, [showToast])
 
@@ -75,18 +92,18 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
       rename: async () => {
         const renameResult = await renameFile({ fileId: file.id, name: name })
         if (renameResult.success) {
+          setShowToast({ show: true, type: "success", message: `"${file.name}" renamed to "${(renameResult.data as FileMeataData).name}"` })
           setIsModalOpen(false);
-          setShowToast({ type: "success", message: `"${file.name}" renamed to "${(renameResult.data as FileMeataData).name}"` })
         } else {
+          setShowToast({ show: true, type: "error", message: `"${file.name}" error: ${renameResult.error}` })
           setIsModalOpen(false);
-          setShowToast({ type: "error", message: renameResult.error })
         }
       },
       share: () => updateFileUsers({ fileId: file.id, emails, path }),
       delete: async () => {
         const result = await deleteFile({ fileId: file.id, filePath: filePath })
         if (result.success) {
-          setShowToast({ message: `file deleted successfully!`, type: "normal" })
+          setShowToast({ show: true, message: `"${file.name}" deleted successfully!`, type: "success" })
         }
       }
     };

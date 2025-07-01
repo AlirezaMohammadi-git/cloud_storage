@@ -14,29 +14,7 @@ import { toast } from "sonner";
 const FileUploader = ({ userId }: { userId: string }) => {
   const [files, setFiles] = useState<File[]>([]);
   const path = usePathname();
-  const [error, setError] = useState({ error: "", fileName: "" })
-
-  const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      setFiles(acceptedFiles);
-      acceptedFiles.forEach(async (file) => {
-        try {
-          const result = await uploadFile({ file: file, userId: userId });
-          if (result.success) {
-            setFiles(prev => {
-              return prev.filter(file => file.name !== result.data as string)
-            })
-          } else {
-            setError({ error: result?.error, fileName: file.name })
-          }
-        } catch (err) {
-          console.error(err);
-          setError({ error: `Something went wrong.`, fileName: file.name })
-        }
-      })
-    },
-    [path],
-  );
+  const [showToast, setShowToast] = useState({ show: false, message: "", type: "error" });
 
   const handleRemoveFile = (
     e: React.MouseEvent<HTMLImageElement, MouseEvent>,
@@ -49,30 +27,62 @@ const FileUploader = ({ userId }: { userId: string }) => {
     });
   };
 
-  // if user drag a file over returned HTML, then isDragActive will be true.
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
-
-
-  // show error message to user :
   useEffect(() => {
 
-    if (error) {
-      setFiles(prev => prev.filter(file => file.name !== error.fileName))
-      toast(error.fileName, {
-        description: error.error,
-        position: "top-center",
-        className: "error-toast",
-        onAutoClose: () => setFiles(prev => prev.filter(file => file.name !== error.fileName)),
-        action: {
-          label: "Ok",
-          onClick: () => {
-            setFiles(prev => prev.filter(file => file.name !== error.fileName))
+    // showToast.show prevent repead
+    if (showToast.show) {
+      if (showToast.type === "success") {
+        toast.success(
+          showToast.message, {
+          className: "success-toast",
+          position: "top-center",
+          action: {
+            label: "OK",
+            onClick: () => { }
           }
         }
-      })
+        )
+      } else if (showToast.type === "error") {
+        toast.error(
+          showToast.message, {
+          position: "top-center",
+          className: "error-toast",
+          action: {
+            label: "OK",
+            onClick: () => { }
+          }
+        }
+        )
+      }
     }
 
-  }, [error])
+  }, [showToast])
+
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      setFiles(acceptedFiles);
+      acceptedFiles.forEach(async (file) => {
+        try {
+          const result = await uploadFile({ file: file, userId: userId });
+          if (result.success) {
+            setFiles(prev => {
+              return prev.filter(file => file.name !== result.data as string)
+            })
+            setShowToast({ show: true, message: `"${file.name}" uploaded successfully!`, type: "success" })
+          } else if (!result.success) {
+            setShowToast({ show: true, message: `"${file.name}" :${result.error}`, type: "error" })
+          }
+        } catch (err) {
+          console.error(err);
+          setShowToast({ show: true, message: `Error while uploading "${file.name}"`, type: "error" })
+        }
+      })
+    },
+    [path],
+  );
+
+  // if user drag a file over returned HTML, then isDragActive will be true.
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   return (
     <div {...getRootProps()}>

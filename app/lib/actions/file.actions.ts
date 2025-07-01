@@ -220,7 +220,6 @@ export const uploadFile = async ({
         }
 
         const metaResult = await uploadFileMetaData(metaData);
-        console.log(metaResult)
         if (!metaResult?.success) return metaResult as FileResult;
 
         // ## save file (buffer) in given path (filePath);
