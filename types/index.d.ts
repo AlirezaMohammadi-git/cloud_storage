@@ -57,8 +57,6 @@ declare global {
   declare interface RenameFileProps {
     fileId: string;
     name: string;
-    extension: string;
-    path: string;
   }
   declare interface UpdateFileUsersProps {
     fileId: string;

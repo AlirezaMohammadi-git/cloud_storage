@@ -2,82 +2,14 @@
 
 import { createAdminClient } from "@/lib/appwrite";
 import { appwriteConfig } from "@/lib/appwrite/config";
-import { Models, Query } from "node-appwrite";
-import { checkErrorCode, getFileType, parseStringify, uuidv4 } from "@/lib/utils";
+import { getFileType, parseStringify, uuidv4 } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import path from "path"
-import { mkdir, writeFile, readdir, readFile, rm } from "fs/promises";
+import { mkdir, writeFile, readdir, readFile, rm, rename } from "fs/promises";
 import { existsSync } from "fs";
 import { pool } from "@/db";
-import { ca } from "zod/v4/locales";
-import { Finlandica } from "next/font/google";
 
 
-
-
-export async function createFileUrl(userId: string, fileName: string) {
-    return path.join("api", "uploads", userId, fileName);
-}
-
-const handleError = (error: unknown, message: string) => {
-    console.log(error, message);
-    throw error;
-};
-
-const createQueries = (
-    currentUser: Models.Document,
-    types: string[],
-    searchText: string,
-    sort: string,
-    limit?: number,
-) => {
-    const queries = [
-        Query.or([
-            Query.equal("owner", [currentUser.$id]),
-            Query.contains("users", [currentUser.email]),
-        ]),
-    ];
-
-    if (types.length > 0) queries.push(Query.equal("type", types));
-    if (searchText) queries.push(Query.contains("name", searchText));
-    if (limit) queries.push(Query.limit(limit));
-
-    if (sort) {
-        const [sortBy, orderBy] = sort.split("-");
-
-        queries.push(
-            orderBy === "asc" ? Query.orderAsc(sortBy) : Query.orderDesc(sortBy),
-        );
-    }
-
-    return queries;
-};
-
-export const renameFile = async ({
-    fileId,
-    name,
-    extension,
-    path,
-}: RenameFileProps) => {
-    const { databases } = await createAdminClient();
-
-    try {
-        const newName = `${name}.${extension}`;
-        const updatedFile = await databases.updateDocument(
-            appwriteConfig.databaseId,
-            appwriteConfig.filesCollectionId,
-            fileId,
-            {
-                name: newName,
-            },
-        );
-
-        revalidatePath(path);
-        return parseStringify(updatedFile);
-    } catch (error) {
-        handleError(error, "Failed to rename file");
-    }
-};
 
 export const updateFileUsers = async ({
     fileId,
@@ -99,11 +31,14 @@ export const updateFileUsers = async ({
         revalidatePath(path);
         return parseStringify(updatedFile);
     } catch (error) {
-        handleError(error, "Failed to rename file");
+        handleError(error);
     }
 };
 
-// ============================== TOTAL FILE SPACE USED
+
+// #################################################################
+// #################### TOTAL FILE SPACE USED ######################
+// #################################################################
 export async function getTotalSpaceUsed({ userId }: { userId: string }) {
     const dirPath = path.join(process.cwd(), `uploads/${userId}/`);
     const userDirExists = existsSync(dirPath);
@@ -125,7 +60,7 @@ export async function getTotalSpaceUsed({ userId }: { userId: string }) {
 
         return { success: true, data: totalUsedSize } as FileResult;
     } catch (err) {
-        console.error(err);
+        handleError(err);
         return { success: false, error: "Couldn't get total files size!" } as FileResult;
     }
 }
@@ -142,7 +77,7 @@ export async function getFileSize({ userId, fileName }: { userId: string, fileNa
         return { success: true, data: buffer.byteLength } as FileResult;
 
     } catch (err) {
-        console.log(err);
+        handleError(err);
         return { success: false, error: "Couldn't get file size!" } as FileResult;
     }
 
@@ -164,60 +99,81 @@ export async function getAllFilesSizes({ userId, fileNames }: { userId: string, 
         return { success: true, data: totalSize } as FileResult;
 
     } catch (err) {
-        console.log(err);
+        handleError(err);
         return { success: false, error: "Couldn't get sizes!" } as FileResult;
     }
 
 
 }
 
-
-// DASHBOARD UTILS
+// #################################################################
+// ################### DASHBOARD UTILS #############################
+// #################################################################
 export const getUsageSummary = async (fileNames: FileMeataData[], userId: string) => {
-    const images = fileNames.filter(fileName => fileName.type === "image")
-    const videos = fileNames.filter(fileName => fileName.type === "video")
-    const audios = fileNames.filter(fileName => (fileName).type === "audio")
-    const documents = fileNames.filter(fileName => (fileName).type === "document")
-    const other = fileNames.filter(fileName => (fileName).type === "other")
 
-    const imageSize = await getAllFilesSizes({ userId: userId, fileNames: images })
-    const videoSize = await getAllFilesSizes({ userId: userId, fileNames: videos })
-    const audioSize = await getAllFilesSizes({ userId: userId, fileNames: audios })
-    const documentSize = await getAllFilesSizes({ userId: userId, fileNames: documents })
-    const otherSize = await getAllFilesSizes({ userId: userId, fileNames: other })
+    try {
+        const images = fileNames.filter(fileName => fileName.type === "image")
+        const videos = fileNames.filter(fileName => fileName.type === "video")
+        const audios = fileNames.filter(fileName => (fileName).type === "audio")
+        const documents = fileNames.filter(fileName => (fileName).type === "document")
+        const other = fileNames.filter(fileName => (fileName).type === "other")
 
-    const mediaSize = (videoSize.success ? videoSize.data as number : 0) + (audioSize.success ? audioSize.data as number : 0);
+        const imageSize = await getAllFilesSizes({ userId: userId, fileNames: images })
+        const videoSize = await getAllFilesSizes({ userId: userId, fileNames: videos })
+        const audioSize = await getAllFilesSizes({ userId: userId, fileNames: audios })
+        const documentSize = await getAllFilesSizes({ userId: userId, fileNames: documents })
+        const otherSize = await getAllFilesSizes({ userId: userId, fileNames: other })
 
-    return [
-        {
-            title: "Documents",
-            size: documentSize.success ? documentSize.data as number : 0,
-            icon: "/assets/icons/file-document-light.svg",
-            url: "/documents",
-        },
-        {
-            title: "Images",
-            size: imageSize.success ? imageSize.data as number : 0,
-            icon: "/assets/icons/file-image-light.svg",
-            url: "/images",
-        },
-        {
-            title: "Media",
-            size: mediaSize as number,
-            icon: "/assets/icons/file-video-light.svg",
-            url: "/media",
-        },
-        {
-            title: "Others",
-            size: otherSize.success ? otherSize.data as number : 0,
-            icon: "/assets/icons/file-other-light.svg",
-            url: "/others",
-        },
-    ];
+        const mediaSize = (videoSize.success ? videoSize.data as number : 0) + (audioSize.success ? audioSize.data as number : 0);
+
+        return [
+            {
+                title: "Documents",
+                size: documentSize.success ? documentSize.data as number : 0,
+                icon: "/assets/icons/file-document-light.svg",
+                url: "/documents",
+            },
+            {
+                title: "Images",
+                size: imageSize.success ? imageSize.data as number : 0,
+                icon: "/assets/icons/file-image-light.svg",
+                url: "/images",
+            },
+            {
+                title: "Media",
+                size: mediaSize as number,
+                icon: "/assets/icons/file-video-light.svg",
+                url: "/media",
+            },
+            {
+                title: "Others",
+                size: otherSize.success ? otherSize.data as number : 0,
+                icon: "/assets/icons/file-other-light.svg",
+                url: "/others",
+            },
+        ];
+    } catch (err) {
+        handleError(err);
+        return [];
+    }
+
+};
+export async function getFilePath({ fileName, userId }: { fileName: string, userId: string }) {
+    return path.join(process.cwd(), "uploads", userId, fileName);
+}
+export async function createFileUrl(userId: string, fileName: string) {
+    return path.join("api", "uploads", userId, fileName);
+}
+const handleError = (error: unknown) => {
+    console.error("❌ File.Actions:", error);
 };
 
 
-//################## CRUD proccessess #######################
+// #################################################################
+// ######################## CRUD proccessess #######################
+// #################################################################
+
+// ################### CREATE
 async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> {
     try {
         await pool.query(`INSERT INTO files_metadata ( id, name , fType, url, size, date_added,owners)
@@ -228,7 +184,7 @@ async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> 
 
     } catch (err) {
 
-        console.error(err);
+        handleError(err);
 
         // Type guard for PostgreSQL errors
         if (err instanceof Error && 'code' in err) {
@@ -274,12 +230,32 @@ export const uploadFile = async ({
         const result: FileResult = { success: true, data: fileName }
         return result;
     } catch (err) {
-        console.log(err)
+        handleError(err);
         return { success: false, error: "Something went wrong. File didn't uploaded!" } as FileResult;
     }
 };
 
-
+// ################### READ
+async function getFileMetadata(fileId: string): Promise<FileResult> {
+    try {
+        const query = await pool.query(`SELECT * FROM files_metadata WHERE id=$1;`, [fileId])
+        const meta = query.rows[0];
+        if (meta.length <= 0) return { success: false, error: "Couldn't find the file in server!" } as FileResult;
+        const dtoMeta = {
+            id: meta.id,
+            name: meta.name,
+            dateAdded: meta.date_added,
+            owners: meta.owners,
+            size: meta.size,
+            type: meta.fType,
+            url: meta.url
+        } as FileMeataData;
+        return { success: true, data: dtoMeta } as FileResult;
+    } catch (err) {
+        handleError(err);
+        return { success: false, error: "Uncaught Exeption while getting file metadata." } as FileResult;
+    }
+}
 export const getFiles = async ({
     userId,
     types = [],
@@ -296,7 +272,7 @@ export const getFiles = async ({
 
     try {
 
-        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owners=$1`, [[userId]])
+        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owners=$1;`, [[userId]])
         const dtoData = filesInDir.rows.map(data => {
             return {
                 type: data.ftype,
@@ -307,18 +283,70 @@ export const getFiles = async ({
         return { success: true, data: dtoData as FileMeataData[] } as FileResult;
 
     } catch (err) {
-        handleError(err, "can't read files from server!")
+        handleError(err);
         return { success: false, error: "can't read files from server!" } as FileResult;
     }
 };
 
-export async function getFilePath({ fileName, userId }: { fileName: string, userId: string }) {
-    return path.join(process.cwd(), "uploads", userId, fileName);
+// ################### UPDATE
+async function updateFileMetadata(newMeta: FileMeataData): Promise<FileResult> {
+    try {
+
+        await pool.query(`UPDATE files_metadata 
+            SET name=$1, fType=$2, url=$3, size=$4, date_added=$5, owners=$6 WHERE id=$7;`,
+            [newMeta.name, newMeta.type, newMeta.url, newMeta.size, newMeta.dateAdded, newMeta.owners, newMeta.id]
+        );
+        return { success: true, data: newMeta } as FileResult;
+
+    } catch (err) {
+        handleError(err);
+        return { success: false, error: "Uncough Exeption while updating in database" } as FileResult;
+    }
 }
+export const renameFile = async ({
+    fileId,
+    name,
+}: RenameFileProps): Promise<FileResult> => {
+    try {
+
+        const previousFile = await getFileMetadata(fileId);
+        if (!previousFile.success) return previousFile as FileResult;
+
+        const meta = previousFile.data as FileMeataData;
+
+        //1. rename file in database first
+        const newMeta = {
+            name: name,
+            id: meta.id,
+            url: meta.url,
+            type: getFileType(name).type,
+            size: meta.size,
+            dateAdded: meta.dateAdded,
+            owners: meta.owners
+        } as FileMeataData;
+
+        const newMetaResult = await updateFileMetadata(newMeta);
+        if (!newMetaResult.success) return { success: false, error: `Uncough exeption. Couldn't update ${meta.name}!` } as FileResult;
+
+        //1. rename file in disk then
+        const oldPath = await getFilePath({ fileName: meta.name, userId: meta.owners[0] })
+        const newPath = await getFilePath({ fileName: name, userId: meta.owners[0] })
+        await rename(oldPath, newPath);
+
+        revalidatePath("/")
+        return { success: true, data: newMeta } as FileResult;
+
+    } catch (err) {
+        handleError(err);
+        return { success: false, error: "Uncough exeption. Couldn't update file name!" } as FileResult;
+    }
+};
+
+// ################### DELETE
 async function deleteFileMetadata(fileId: string): Promise<FileResult> {
 
     try {
-        const data = await pool.query(`DELETE FROM files_metadata WHERE id=$1`, [fileId]);
+        const data = await pool.query(`DELETE FROM files_metadata WHERE id=$1;`, [fileId]);
         return { success: true, data: data } as FileResult;
     } catch (err) {
         console.error(err);
@@ -356,4 +384,4 @@ export async function deleteFile({ filePath, fileId }: { filePath: string, fileI
         console.error('Unexpected error in deleteFile:', err);
         return { success: false, error: "Couldn't delete file!" };
     }
-} 
+}

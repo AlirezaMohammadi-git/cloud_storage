@@ -40,20 +40,18 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
   const [name, setName] = useState(file.name);
   const [isLoading, setIsLoading] = useState(false);
   const [emails, setEmails] = useState<string[]>([]);
-  const [showToast, setShowToast] = useState({ show: false, message: "", type: "error" });
+  const [showToast, setShowToast] = useState({ message: "", type: "error" });
 
   useEffect(() => {
 
-    if (showToast.show) {
-      toast(showToast.message, {
-        className: showToast.type === "error" ? "error-toast" : "success-toast",
-        position: "top-center",
-        action: {
-          label: "OK",
-          onClick: () => { }
-        }
-      });
-    }
+    toast(showToast.message, {
+      className: showToast.type === "error" ? "error-toast" : "success-toast",
+      position: "top-center",
+      action: {
+        label: "OK",
+        onClick: () => { }
+      }
+    });
 
   }, [showToast])
 
@@ -74,13 +72,21 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
 
     const filePath = await getFilePath({ fileName: file.name, userId: file.owners[0] })
     const actions = {
-      rename: () =>
-        renameFile({ fileId: file.id, name, extension: file.type, path }),
+      rename: async () => {
+        const renameResult = await renameFile({ fileId: file.id, name: name })
+        if (renameResult.success) {
+          setIsModalOpen(false);
+          setShowToast({ type: "success", message: `"${file.name}" renamed to "${(renameResult.data as FileMeataData).name}"` })
+        } else {
+          setIsModalOpen(false);
+          setShowToast({ type: "error", message: renameResult.error })
+        }
+      },
       share: () => updateFileUsers({ fileId: file.id, emails, path }),
       delete: async () => {
         const result = await deleteFile({ fileId: file.id, filePath: filePath })
         if (result.success) {
-          setShowToast({ show: true, message: `file deleted successfully!`, type: "normal" })
+          setShowToast({ message: `file deleted successfully!`, type: "normal" })
         }
       }
     };
