@@ -60,6 +60,7 @@ const FileUploader = ({ userId }: { userId: string }) => {
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
+      // show files as toast
       setFiles(acceptedFiles);
       acceptedFiles.forEach(async (file) => {
         try {

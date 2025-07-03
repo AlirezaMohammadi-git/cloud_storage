@@ -2,12 +2,13 @@
 
 import { createAdminClient } from "@/lib/appwrite";
 import { appwriteConfig } from "@/lib/appwrite/config";
-import { getFileType, parseStringify, uuidv4 } from "@/lib/utils";
+import { convertFileSize, getFileType, parseStringify, uuidv4 } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import path from "path"
 import { mkdir, writeFile, readdir, readFile, rm, rename } from "fs/promises";
 import { existsSync } from "fs";
 import { pool } from "@/db";
+import { UPLOAD_SIZE_LIMIT_BYTES } from "@/constants";
 
 
 
@@ -227,19 +228,27 @@ export const uploadFile = async ({
         if (!existsSync(dirPath)) await mkdir(dirPath);
         const filePath = path.join(process.cwd(), `uploads/${userId}/` + fileName)
         const buffer = Buffer.from(await file.arrayBuffer());
+        const fileSize = buffer.byteLength;
+
+        // checking for size limit
+        const remainingUploadSize = await getRemainingUploadSize(userId);
+        if (!remainingUploadSize.success) return remainingUploadSize;
+        console.log(`remaining size : ${convertFileSize(remainingUploadSize.data as number)}, file size : ${convertFileSize(fileSize)}`)
+        if (fileSize > (remainingUploadSize.data as number)) return { success: false, error: `2GB size limit reached. Couldn't upload "${fileName}"` } as FileResult;
+
+        // uploading file metadata first:
         const metaData: FileMeataData = {
             id: uuidv4(),
             name: fileName,
             type: getFileType(fileName).type as FileType,
-            size: buffer.byteLength,
+            size: fileSize,
             url: await createFileUrl(userId, fileName),
             dateAdded: new Date(),
             owner: userId,
             shareWith: []
         }
-
-        const metaResult = await uploadFileMetaData(metaData);
-        if (!metaResult?.success) return metaResult as FileResult;
+        const metadata = await uploadFileMetaData(metaData);
+        if (!metadata?.success) return metadata as FileResult;
 
         // ## save file (buffer) in given path (filePath);
         await writeFile(filePath, buffer);
@@ -274,6 +283,45 @@ async function getFileMetadata(fileId: string): Promise<FileResult> {
         handleError(err);
         return { success: false, error: "Uncaught Exeption while getting file metadata." } as FileResult;
     }
+}
+async function getAllFilesMetadata(userId: string): Promise<FileResult> {
+    try {
+        const query = await pool.query(`SELECT * FROM files_metadata WHERE owner=$1;`, [userId])
+        const data = query.rows;
+        if (data.length <= 0) return { success: false, error: "No file found from the server!" } as FileResult;
+        const dtoMeta = (data as DtofileMeataData[]).map((meta: DtofileMeataData) => {
+            const dtoMeta = {
+                id: meta.id,
+                name: meta.name,
+                dateAdded: meta.date_added,
+                owner: meta.owner,
+                size: meta.size,
+                type: meta.fType,
+                url: meta.url,
+                shareWith: meta.shareWith
+            } as FileMeataData;
+            return dtoMeta;
+        });
+
+        return { success: true, data: dtoMeta } as FileResult;
+    } catch (err) {
+        handleError(err);
+        return { success: false, error: "Uncaught Exeption while getting file metadata." } as FileResult;
+    }
+}
+export async function getRemainingUploadSize(userId: string): Promise<FileResult> {
+    const filesMeta = await getAllFilesMetadata(userId);
+    if (!filesMeta.success) {
+        return { success: false, error: "Can't get files metadata" };
+    }
+
+    const totalFileSizes = (filesMeta.data as FileMeataData[])
+        .map(meta => Number(meta.size))
+        .reduce((acc, size) => acc + size, 0);
+
+    const remainingUploadSize = Math.max(0, UPLOAD_SIZE_LIMIT_BYTES - totalFileSizes);
+
+    return { success: true, data: remainingUploadSize };
 }
 export const getFiles = async ({
     userId,

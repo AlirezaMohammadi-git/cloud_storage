@@ -1,7 +1,12 @@
 
 
 
-//todo : implement details and share functionality in 3 dot dropdown.
+
+// todo : instead of only save createdAt, save any changes date as last edit like rename or share with users!
+//todo : for each feature add a new branch in develop and after feature implemented successfull, just merge it with develop branch!
+//todo : implement share functionality in 3 dot dropdown.
+// tooltip :  git add . ':!todo' will stage all files excluding todo!
+
 
 
 
