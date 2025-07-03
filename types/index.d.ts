@@ -21,6 +21,16 @@ declare global {
     icon: string;
     value: string;
   }
+  declare interface DtofileMeataData {
+    id: string,
+    name: string,
+    fType: FileType,
+    url: string,
+    size: number,
+    date_added: Date,
+    owner: string,
+    shareWith: string[]
+  }
   declare interface FileMeataData {
     id: string,
     name: string,
