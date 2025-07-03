@@ -65,15 +65,21 @@ const FileUploader = ({ userId }: { userId: string }) => {
         try {
           const result = await uploadFile({ file: file, userId: userId });
           if (result.success) {
-            setFiles(prev => {
-              return prev.filter(file => file.name !== result.data as string)
-            })
+            setFiles((prev) => {
+              return prev.filter((toastFile) => toastFile.name !== file.name);
+            });
             setShowToast({ show: true, message: `"${file.name}" uploaded successfully!`, type: "success" })
-          } else if (!result.success) {
+          } else {
             setShowToast({ show: true, message: `"${file.name}" :${result.error}`, type: "error" })
+            setFiles((prev) => {
+              return prev.filter((toastFile) => toastFile.name !== file.name);
+            });
           }
         } catch (err) {
           console.error(err);
+          setFiles((prev) => {
+            return prev.filter((toastFile) => toastFile.name !== file.name);
+          });
           setShowToast({ show: true, message: `Error while uploading "${file.name}"`, type: "error" })
         }
       })

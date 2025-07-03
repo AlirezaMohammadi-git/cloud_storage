@@ -162,7 +162,7 @@ export async function getFilePath({ fileName, userId }: { fileName: string, user
     return path.join(process.cwd(), "uploads", userId, fileName);
 }
 export async function createFileUrl(userId: string, fileName: string) {
-    return path.join("api", "uploads", userId, fileName);
+    return path.join("/api", "uploads", userId, fileName);
 }
 const handleError = (error: unknown) => {
     console.error("❌ File.Actions:", error);
@@ -208,7 +208,7 @@ async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> 
         if (err instanceof Error && 'code' in err) {
             const pgError = err as PostgresError;
             if (pgError.code === "23505") {
-                return { success: false, error: "File already exists!" } as FileResult;
+                return { success: false, error: `"${metadata.name}" already exists!` } as FileResult;
             }
         }
 

@@ -77,7 +77,6 @@ const Dashboard = async () => {
             <ul className="mt-5 flex flex-col gap-5">
               {(files.data as FileMeataData[]).map(async (file: FileMeataData) => {
 
-                const filePath = path.join('/uploads', session.user.id, file.name);
                 const fileSize = await getFileSize({ userId: session.user.id, fileName: file.name })
                 const fileURL = await createFileUrl(session.user.id, file.name);
 
@@ -92,7 +91,7 @@ const Dashboard = async () => {
                     <Thumbnail
                       type={(file).type}
                       extension={getFileType(file.name).extension}
-                      url={filePath}
+                      url={file.url}
                     />
 
                     <div className="recent-file-details">
@@ -103,6 +102,7 @@ const Dashboard = async () => {
                           fileSize.success && (
                             <FormattedFileSize
                               sizeInBytes={fileSize.data as number}
+                              creationDate={file.dateAdded}
                               className="caption"
                             />
                           )
