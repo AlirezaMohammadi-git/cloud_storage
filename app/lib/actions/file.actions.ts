@@ -288,7 +288,7 @@ async function getAllFilesMetadata(userId: string): Promise<FileResult> {
     try {
         const query = await pool.query(`SELECT * FROM files_metadata WHERE owner=$1;`, [userId])
         const data = query.rows;
-        if (data.length <= 0) return { success: false, error: "No file found from the server!" } as FileResult;
+        if (data.length <= 0) return { success: true, data: [] } as FileResult;
         const dtoMeta = (data as DtofileMeataData[]).map((meta: DtofileMeataData) => {
             const dtoMeta = {
                 id: meta.id,
@@ -310,18 +310,28 @@ async function getAllFilesMetadata(userId: string): Promise<FileResult> {
     }
 }
 export async function getRemainingUploadSize(userId: string): Promise<FileResult> {
-    const filesMeta = await getAllFilesMetadata(userId);
-    if (!filesMeta.success) {
-        return { success: false, error: "Can't get files metadata" };
+
+    try {
+        const filesMeta = await getAllFilesMetadata(userId);
+        if (!filesMeta.success) {
+            return filesMeta;
+        }
+
+        const metaArray = filesMeta.data as FileMeataData[];
+        if (metaArray.length === 0) return { success: true, data: UPLOAD_SIZE_LIMIT_BYTES } as FileResult;
+
+        const totalFileSizes = metaArray
+            .map(meta => Number(meta.size))
+            .reduce((acc, size) => acc + size, 0);
+
+        const remainingUploadSize = Math.max(0, UPLOAD_SIZE_LIMIT_BYTES - totalFileSizes);
+
+        return { success: true, data: remainingUploadSize };
+    } catch (err) {
+        handleError(err);
+        return { success: false, error: "Uncough exception. Please try again later." } as FileResult;
     }
 
-    const totalFileSizes = (filesMeta.data as FileMeataData[])
-        .map(meta => Number(meta.size))
-        .reduce((acc, size) => acc + size, 0);
-
-    const remainingUploadSize = Math.max(0, UPLOAD_SIZE_LIMIT_BYTES - totalFileSizes);
-
-    return { success: true, data: remainingUploadSize };
 }
 export const getFiles = async ({
     userId,
