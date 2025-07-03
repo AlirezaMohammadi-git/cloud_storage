@@ -176,9 +176,27 @@ const handleError = (error: unknown) => {
 // ################### CREATE
 async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> {
     try {
-        await pool.query(`INSERT INTO files_metadata ( id, name , fType, url, size, date_added,owners)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)
-          ON CONFLICT (id) DO NOTHING;`, [metadata.id, metadata.name, metadata.type, metadata.url, metadata.size, metadata.dateAdded, metadata.owners])
+        await pool.query(`INSERT INTO files_metadata ( 
+            id,
+            name,
+            fType,
+            url,
+            size,
+            date_added,
+            owner,
+            shareWith
+            )
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+          ON CONFLICT (id) DO NOTHING;`, [
+            metadata.id,
+            metadata.name,
+            metadata.type,
+            metadata.url,
+            metadata.size,
+            metadata.dateAdded,
+            metadata.owner,
+            metadata.shareWith
+        ])
 
         return { success: true, data: metadata } as FileResult;
 
@@ -216,7 +234,8 @@ export const uploadFile = async ({
             size: buffer.byteLength,
             url: await createFileUrl(userId, fileName),
             dateAdded: new Date(),
-            owners: [userId]
+            owner: userId,
+            shareWith: []
         }
 
         const metaResult = await uploadFileMetaData(metaData);
@@ -244,10 +263,11 @@ async function getFileMetadata(fileId: string): Promise<FileResult> {
             id: meta.id,
             name: meta.name,
             dateAdded: meta.date_added,
-            owners: meta.owners,
+            owner: meta.owner,
             size: meta.size,
             type: meta.fType,
-            url: meta.url
+            url: meta.url,
+            shareWith: meta.shareWith
         } as FileMeataData;
         return { success: true, data: dtoMeta } as FileResult;
     } catch (err) {
@@ -271,7 +291,7 @@ export const getFiles = async ({
 
     try {
 
-        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owners=$1;`, [[userId]])
+        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owner=$1;`, [userId])
         const dtoData = filesInDir.rows.map(data => {
             return {
                 type: data.ftype,
@@ -292,8 +312,8 @@ async function updateFileMetadata(newMeta: FileMeataData): Promise<FileResult> {
     try {
 
         await pool.query(`UPDATE files_metadata 
-            SET name=$1, fType=$2, url=$3, size=$4, date_added=$5, owners=$6 WHERE id=$7;`,
-            [newMeta.name, newMeta.type, newMeta.url, newMeta.size, newMeta.dateAdded, newMeta.owners, newMeta.id]
+            SET name=$1, fType=$2, url=$3, size=$4, date_added=$5, owner=$6 WHERE id=$7 shareWith=$8;`,
+            [newMeta.name, newMeta.type, newMeta.url, newMeta.size, newMeta.dateAdded, newMeta.owner, newMeta.id, newMeta.shareWith]
         );
         return { success: true, data: newMeta } as FileResult;
 
@@ -321,15 +341,16 @@ export const renameFile = async ({
             type: getFileType(name).type,
             size: meta.size,
             dateAdded: meta.dateAdded,
-            owners: meta.owners
+            owner: meta.owner,
+            shareWith: meta.shareWith
         } as FileMeataData;
 
         const newMetaResult = await updateFileMetadata(newMeta);
         if (!newMetaResult.success) return { success: false, error: `Uncough exeption. Couldn't update ${meta.name}!` } as FileResult;
 
         //1. rename file in disk then
-        const oldPath = await getFilePath({ fileName: meta.name, userId: meta.owners[0] })
-        const newPath = await getFilePath({ fileName: name, userId: meta.owners[0] })
+        const oldPath = await getFilePath({ fileName: meta.name, userId: meta.owner })
+        const newPath = await getFilePath({ fileName: name, userId: meta.owner })
         await rename(oldPath, newPath);
 
         revalidatePath("/")
