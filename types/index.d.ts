@@ -28,7 +28,8 @@ declare global {
     url: string,
     size: number,
     dateAdded: Date,
-    owners: string[]
+    owner: string,
+    shareWith: string[]
   }
   // Define a type for PostgreSQL errors
   type PostgresError = {

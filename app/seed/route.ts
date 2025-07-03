@@ -84,7 +84,8 @@ async function seedFilesMetadata(client: Client) {
       url TEXT NOT NULL,
       size BIGINT NOT NULL DEFAULT 0,
       date_added TIMESTAMP WITH TIME ZONE NOT NULL,
-      owners TEXT[]
+      owner TEXT NOT NULL,
+      shareWith TEXT[] NOT NULL
     );
   `
   );
@@ -103,8 +104,8 @@ async function seedFilesMetadata(client: Client) {
       }
 
       return client.query(
-        `INSERT INTO files_metadata (id, name, fType, url, size, date_added)
-           VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO files_metadata (id, name, fType, url, size, date_added,owner,shareWith)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (id) DO NOTHING`,
         [
           meta.id,
@@ -112,7 +113,9 @@ async function seedFilesMetadata(client: Client) {
           meta.type,
           meta.url,
           meta.size || 0, // Default to 0 if size not provided
-          dateAdded
+          dateAdded,
+          meta.owner,
+          meta.shareWith
         ]
       );
     })
