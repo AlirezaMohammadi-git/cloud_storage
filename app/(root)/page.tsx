@@ -20,6 +20,7 @@ const Dashboard = async () => {
       userId: session.user.id,
       types: [],
       searchText: "",
+      limit: 10
     }
   )
   const totalUsedSpace = await getTotalSpaceUsed({ userId: session.user.id })

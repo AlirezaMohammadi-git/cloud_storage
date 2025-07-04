@@ -349,7 +349,7 @@ export const getFiles = async ({
 
     try {
 
-        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owner=$1;`, [userId])
+        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owner=$1 ORDER BY date_added DESC LIMIT $2;`, [userId, limit])
         const dtoData = filesInDir.rows.map(data => {
             return {
                 type: data.ftype,
