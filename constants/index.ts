@@ -121,7 +121,7 @@ export const exampleFileMetadata: FileMeataData[] = [
     size: 400000000,
     url: "null",
     lastEdited: new Date(),
-    owner: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
+    owner: "e64c54ae-36ad-4adb-932a-76d949f61043",
     shareWith: []
   },
   {

@@ -79,7 +79,7 @@ async function seedFilesMetadata(client: Client) {
     `
     CREATE TABLE IF NOT EXISTS files_metadata (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-      name VARCHAR(255) NOT NULL UNIQUE,
+      name VARCHAR(255) NOT NULL,
       fType fileType NOT NULL,
       url TEXT NOT NULL,
       size BIGINT NOT NULL DEFAULT 0,
@@ -125,7 +125,6 @@ async function seedFilesMetadata(client: Client) {
   return insertResults;
 }
 export async function GET() {
-  //todo : seed new table in database and 
   const client = new Client({
     connectionString: 'postgres://joe:helloKitty@localhost:5432/mylocaldatabase'
   });
@@ -143,4 +142,3 @@ export async function GET() {
     client.end()
   }
 }
-// todo : protect this route to be accessable only for admin users.

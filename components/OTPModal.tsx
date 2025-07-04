@@ -18,7 +18,7 @@ import {
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { verifySecret, sendEmailOTP } from "@/lib/actions/user.actions";
+import { verifySecret, sendEmailOTP } from "@/app/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { formatTime } from "@/lib/utils";

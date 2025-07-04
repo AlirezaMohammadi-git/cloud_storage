@@ -8,15 +8,19 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import Image from "next/image";
-import React, { useState } from "react";
-import { notFound, usePathname } from "next/navigation";
+import React, { useState, useActionState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Separator } from "@radix-ui/react-separator";
 import { navItems } from "@/constants";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import FileUploader from "@/components/FileUploader";
-import { auth, signOut } from "@/auth";
+import { signOut } from "@/auth";
+import { toast } from "sonner";
+import { Form } from "./ui/form";
+import { useForm } from "react-hook-form";
+import { signOutUser } from "@/app/lib/actions/user.db.actions";
 
 interface Props {
   id: string,
@@ -31,8 +35,58 @@ const MobileNavigation = ({
   avatar,
   email,
 }: Props) => {
+
+
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const [showToast, setShowToast] = useState({ show: false, message: "", type: "error" });
+  const [state, formAction, isPending] = useActionState(signOutUser, undefined)
+
+  const form = useForm();
+
+
+  useEffect(() => {
+
+    // showToast.show prevent repead
+    if (showToast.show) {
+      if (showToast.type === "success") {
+        toast.success(
+          showToast.message, {
+          className: "success-toast",
+          position: "top-center",
+          action: {
+            label: "OK",
+            onClick: () => { }
+          }
+        }
+        )
+      } else if (showToast.type === "error") {
+        toast.error(
+          showToast.message, {
+          position: "top-center",
+          className: "error-toast",
+          action: {
+            label: "OK",
+            onClick: () => { }
+          }
+        }
+        )
+      } else if (state) {
+        toast.error(
+          state, {
+          position: "top-center",
+          className: "error-toast",
+          action: {
+            label: "OK",
+            onClick: () => { }
+          }
+        }
+        )
+      }
+    }
+
+  }, [showToast, state])
+
   return (
     <header className="mobile-header">
       <Image
@@ -59,7 +113,7 @@ const MobileNavigation = ({
           <SheetContent className="shad-sheet h-screen px-3">
 
             <div>
-              <SheetTitle className="mt-8 bg-slate-200 rounded-full pl-3">
+              <SheetTitle className="mt-8 pl-3">
                 <div className="header-user">
                   <Image
                     src={avatar}
@@ -70,7 +124,7 @@ const MobileNavigation = ({
                   />
                   <div className="sm:hidden lg:block">
                     <p className="subtitle-2 capitalize">{fullname}</p>
-                    <p className="caption">{email}</p>
+                    <p className="caption text-gray-500">{email}</p>
                   </div>
                 </div>
                 <Separator className="mb-4 bg-light-200/20" />
@@ -108,21 +162,25 @@ const MobileNavigation = ({
             </div>
 
             <SheetFooter>
-              <div className="flex flex-col justify-between gap-5 pb-5">
-                <Button
-                  type="submit"
-                  className="mobile-sign-out-button"
-                  onClick={async () => await signOut()}
-                >
-                  <Image
-                    src="/assets/icons/logout.svg"
-                    alt="logo"
-                    width={24}
-                    height={24}
-                  />
-                  <p>Logout</p>
-                </Button>
-              </div>
+
+              <Form {...form}>
+                <form action={formAction} className="flex flex-col justify-between gap-5 pb-5">
+                  <Button
+                    type="submit"
+                    disabled={isPending}
+                    className="mobile-sign-out-button"
+                  >
+                    <Image
+                      src="/assets/icons/logout.svg"
+                      alt="logo"
+                      width={24}
+                      height={24}
+                    />
+                    <p>Logout</p>
+                  </Button>
+                </form>
+              </Form>
+
             </SheetFooter>
 
 

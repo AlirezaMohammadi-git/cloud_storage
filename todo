@@ -1,11 +1,8 @@
 
-//optimize : for each feature add a new branch in develop and after feature implemented successfull, just merge it with develop branch!
-
-
 
 Feature : Recent files upload {
-done : instead of only save createdAt, save any changes date as last edit like rename or share with users!
-//todo : implement share functionality in 3 dot dropdown.
+todo : implement share functionality in 3 dot dropdown.
+todo : make each card responsive for small screens;
 }
 
 
@@ -14,8 +11,7 @@ done : instead of only save createdAt, save any changes date as last edit like r
 
 
 //todo : implement search (Edit "getFiles" function to support search).
-//todo : show a success dialog when upload was successfull and error when it won't.
-//todo : handle limit for getting files from server(when the count of files increased.)
 //todo : implement file categories pages.
+//todo : protect seed route to be accessable only for admin users.
 //todo : add a landing page.
 

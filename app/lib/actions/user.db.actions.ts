@@ -1,20 +1,17 @@
 
 "use server"
 
-import { signIn } from "@/auth";
+import { signIn, signOut } from "@/auth";
 import bcrypt from "bcryptjs"
 import { AuthError } from "next-auth";
 import { pool } from "@/db";
-
-
-
-
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 // use only for credential method:
-export async function getUserFromDb(email?: string, id?: string): Promise<User | null> {
+export async function getUserFromDb(email?: string, id?: string) {
     const client = await pool.connect()
     try {
-
         if (email) {
             const result = await client.query(`SELECT * FROM users WHERE email=$1`, [email]);
             const user = result.rows[0]
@@ -22,7 +19,10 @@ export async function getUserFromDb(email?: string, id?: string): Promise<User |
             if (!user) return null;
             const dtoUser: User = {
                 fullname: user.full_name,
-                ...user
+                avatar: user.avatar,
+                email: user.email,
+                id: user.id,
+                logInMethod: user.log_in_method
             }
 
             return dtoUser;
@@ -40,11 +40,9 @@ export async function getUserFromDb(email?: string, id?: string): Promise<User |
         }
 
     } catch (err) {
-        console.log("Failed to load user from db.", err)
         throw new Error("Failed to load user from db.")
     } finally {
         client.release();
-        return null;
     }
 }
 export async function comparePasswords(userId: string, password: string) {
@@ -59,7 +57,7 @@ export async function comparePasswords(userId: string, password: string) {
         return await bcrypt.compare(password, hash.hash);
 
     } catch (err) {
-        console.log("Database error in comparePasswords!", err)
+        console.error("Database error in comparePasswords!", err)
         throw new Error("Database error in comparePasswords!")
     } finally {
         client.release()
@@ -107,6 +105,11 @@ export async function authenticate(prevState: string | undefined, formData: Form
 
     }
 }
+export async function signOutUser() {
+    await signOut({ redirectTo: "/sign-in" })
+    revalidatePath("/");
+    redirect("/sign-in");
+}
 export async function InsertNewUser(user: User, password: string | undefined) {
     const client = await pool.connect()
     try {
@@ -131,7 +134,7 @@ export async function InsertNewUser(user: User, password: string | undefined) {
         return { success: true, user: user }
 
     } catch (err) {
-        console.log(err)
+        console.error(err)
         return { success: false, error: "failed to create user" }
     } finally {
         client.release();

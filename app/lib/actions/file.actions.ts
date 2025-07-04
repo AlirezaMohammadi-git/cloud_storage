@@ -177,6 +177,16 @@ const handleError = (error: unknown) => {
 // ################### CREATE
 async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> {
     try {
+
+        // 1. get all files metadata of this owner
+        // 2. check if this one'name already exists or not
+        const allMeta = await getAllFilesMetadata(metadata.owner);
+        if (!allMeta.success) return { success: false, error: `failed to upload ${metadata.name}` } as FileResult;
+
+        const isAlreadyExists = (allMeta.data as FileMeataData[]).map(meta => meta.name).includes(metadata.name);
+
+        if (isAlreadyExists) return { success: false, error: `file already exists!` } as FileResult;
+
         await pool.query(`INSERT INTO files_metadata ( 
             id,
             name,
@@ -226,14 +236,13 @@ export const uploadFile = async ({
         const fileName = file.name.replaceAll(" ", "_")
         const dirPath = path.join(process.cwd(), `uploads/${userId}`)
         if (!existsSync(dirPath)) await mkdir(dirPath);
-        const filePath = path.join(process.cwd(), `uploads/${userId}/` + fileName)
+        const filePath = path.join(process.cwd(), `uploads/${userId}/${fileName}`)
         const buffer = Buffer.from(await file.arrayBuffer());
         const fileSize = buffer.byteLength;
 
         // checking for size limit
         const remainingUploadSize = await getRemainingUploadSize(userId);
         if (!remainingUploadSize.success) return remainingUploadSize;
-        console.log(`remaining size : ${convertFileSize(remainingUploadSize.data as number)}, file size : ${convertFileSize(fileSize)}`)
         if (fileSize > (remainingUploadSize.data as number)) return { success: false, error: `2GB size limit reached. Couldn't upload "${fileName}"` } as FileResult;
 
         // uploading file metadata first:
@@ -348,7 +357,6 @@ export const getFiles = async ({
     if (!userDir) return { success: true, data: [] } as FileResult;
 
     try {
-
         const filesInDir = await pool.query(`SELECT * FROM files_metadata where owner=$1 ORDER BY lastEdit DESC LIMIT $2;`, [userId, limit])
         const dtoData = filesInDir.rows.map(data => {
             return {
@@ -363,7 +371,6 @@ export const getFiles = async ({
             } as FileMeataData;
         });
 
-        console.log("getFileMetadata:", dtoData)
         return { success: true, data: dtoData as FileMeataData[] } as FileResult;
 
     } catch (err) {

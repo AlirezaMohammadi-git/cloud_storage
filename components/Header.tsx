@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Search from "@/components/Search";
 import FileUploader from "@/components/FileUploader";
-import { auth, signOut } from "@/auth";
-import { notFound } from "next/navigation";
+import { signOut } from "@/auth";
 
 const Header = ({ id }: { id: string }) => {
   return (

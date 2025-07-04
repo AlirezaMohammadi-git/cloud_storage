@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { uuidv4 } from "@/lib/utils";
 import { avatarPlaceholderUrl } from "@/constants";
-import { authenticate, InsertNewUser } from "@/app/lib/actions/user.db";
+import { authenticate, InsertNewUser } from "@/app/lib/actions/user.db.actions";
 import { signIn } from "@/auth";
 import { useSearchParams } from "next/navigation";
 import { providerMap } from "@/auth.config";
