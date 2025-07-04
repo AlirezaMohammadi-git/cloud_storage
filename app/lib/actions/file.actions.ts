@@ -183,7 +183,7 @@ async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> 
             fType,
             url,
             size,
-            date_added,
+            lastEdit,
             owner,
             shareWith
             )
@@ -194,7 +194,7 @@ async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> 
             metadata.type,
             metadata.url,
             metadata.size,
-            metadata.dateAdded,
+            metadata.lastEdited,
             metadata.owner,
             metadata.shareWith
         ])
@@ -243,7 +243,7 @@ export const uploadFile = async ({
             type: getFileType(fileName).type as FileType,
             size: fileSize,
             url: await createFileUrl(userId, fileName),
-            dateAdded: new Date(),
+            lastEdited: new Date(),
             owner: userId,
             shareWith: []
         }
@@ -271,7 +271,7 @@ async function getFileMetadata(fileId: string): Promise<FileResult> {
         const dtoMeta = {
             id: meta.id,
             name: meta.name,
-            dateAdded: meta.date_added,
+            lastEdited: meta.lastEdit,
             owner: meta.owner,
             size: meta.size,
             type: meta.fType,
@@ -293,7 +293,7 @@ async function getAllFilesMetadata(userId: string): Promise<FileResult> {
             const dtoMeta = {
                 id: meta.id,
                 name: meta.name,
-                dateAdded: meta.date_added,
+                lastEdited: meta.lastEdit,
                 owner: meta.owner,
                 size: meta.size,
                 type: meta.fType,
@@ -349,14 +349,21 @@ export const getFiles = async ({
 
     try {
 
-        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owner=$1 ORDER BY date_added DESC LIMIT $2;`, [userId, limit])
+        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owner=$1 ORDER BY lastEdit DESC LIMIT $2;`, [userId, limit])
         const dtoData = filesInDir.rows.map(data => {
             return {
+                id: data.id,
+                name: data.name,
                 type: data.ftype,
-                dateAdded: data.date_added,
-                ...data
+                url: data.url,
+                size: data.size,
+                owner: data.owner,
+                lastEdited: data.lastedit,
+                shareWith: data.shareWith
             } as FileMeataData;
         });
+
+        console.log("getFileMetadata:", dtoData)
         return { success: true, data: dtoData as FileMeataData[] } as FileResult;
 
     } catch (err) {
@@ -368,10 +375,9 @@ export const getFiles = async ({
 // ################### UPDATE
 async function updateFileMetadata(newMeta: FileMeataData): Promise<FileResult> {
     try {
-
         await pool.query(`UPDATE files_metadata 
-            SET name=$1, fType=$2, url=$3, size=$4, date_added=$5, owner=$6 WHERE id=$7 shareWith=$8;`,
-            [newMeta.name, newMeta.type, newMeta.url, newMeta.size, newMeta.dateAdded, newMeta.owner, newMeta.id, newMeta.shareWith]
+            SET name=$1, fType=$2, url=$3, size=$4, lastEdit=$5, owner=$6, shareWith=$8 WHERE id=$7;`,
+            [newMeta.name, newMeta.type, newMeta.url, newMeta.size, new Date(), newMeta.owner, newMeta.id, newMeta.shareWith]
         );
         return { success: true, data: newMeta } as FileResult;
 
@@ -389,7 +395,10 @@ export const renameFile = async ({
         const previousFile = await getFileMetadata(fileId);
         if (!previousFile.success) return previousFile as FileResult;
 
-        const meta = previousFile.data as FileMeataData;
+        let meta = previousFile.data as FileMeataData;
+        if (!meta.shareWith) {
+            meta.shareWith = [];
+        }
 
         //1. rename file in database first
         const newMeta = {
@@ -398,7 +407,7 @@ export const renameFile = async ({
             url: meta.url,
             type: getFileType(name).type,
             size: meta.size,
-            dateAdded: meta.dateAdded,
+            lastEdited: new Date(),
             owner: meta.owner,
             shareWith: meta.shareWith
         } as FileMeataData;

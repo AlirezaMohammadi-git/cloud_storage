@@ -27,7 +27,7 @@ declare global {
     fType: FileType,
     url: string,
     size: number,
-    date_added: Date,
+    lastEdit: Date,
     owner: string,
     shareWith: string[]
   }
@@ -37,7 +37,7 @@ declare global {
     type: FileType,
     url: string,
     size: number,
-    dateAdded: Date,
+    lastEdited: Date,
     owner: string,
     shareWith: string[]
   }

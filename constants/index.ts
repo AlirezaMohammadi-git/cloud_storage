@@ -120,7 +120,7 @@ export const exampleFileMetadata: FileMeataData[] = [
     type: "image",
     size: 400000000,
     url: "null",
-    dateAdded: new Date(),
+    lastEdited: new Date(),
     owner: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
     shareWith: []
   },
@@ -130,7 +130,7 @@ export const exampleFileMetadata: FileMeataData[] = [
     type: "document",
     size: 12345678910,
     url: "null",
-    dateAdded: new Date(),
+    lastEdited: new Date(),
     owner: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
     shareWith: []
   }

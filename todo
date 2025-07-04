@@ -4,9 +4,8 @@
 
 
 Feature : Recent files upload {
-done : limit Recent files uploaded to show only 20 last files based on date added.
-//todo : instead of only save createdAt, save any changes date as last edit like rename or share with users!
-todo : implement share functionality in 3 dot dropdown.
+done : instead of only save createdAt, save any changes date as last edit like rename or share with users!
+//todo : implement share functionality in 3 dot dropdown.
 }
 
 

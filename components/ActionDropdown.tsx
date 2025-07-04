@@ -87,7 +87,7 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
     setIsLoading(true);
     let success = false;
 
-    const filePath = await getFilePath({ fileName: file.name, userId: file.owners[0] })
+    const filePath = await getFilePath({ fileName: file.name, userId: file.owner })
     const actions = {
       rename: async () => {
         const renameResult = await renameFile({ fileId: file.id, name: name })

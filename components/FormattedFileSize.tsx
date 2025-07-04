@@ -14,7 +14,7 @@ export const FormattedFileSize = ({
     <p className={cn("body-1 text-light-200", className)}>
       {sizeInBytes && convertFileSize(sizeInBytes)}
       <br />
-      {creationDate && `createdAt : ${formatDateTime(creationDate.toISOString())}`}
+      {creationDate && `last modify : ${formatDateTime(creationDate.toISOString())}`}
     </p>
   );
 };

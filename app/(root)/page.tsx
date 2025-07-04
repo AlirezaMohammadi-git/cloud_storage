@@ -103,7 +103,7 @@ const Dashboard = async () => {
                           fileSize.success && (
                             <FormattedFileSize
                               sizeInBytes={fileSize.data as number}
-                              creationDate={file.dateAdded}
+                              creationDate={file.lastEdited}
                               className="caption"
                             />
                           )

@@ -32,7 +32,7 @@ export const FileDetails = ({ file }: { file: FileMeataData }) => {
         <DetailRow label="Format:" value={getFileType(file.name).extension} />
         <DetailRow label="Size:" value={convertFileSize(file.size)} />
         {/* <DetailRow label="Owner:" value={file.owner.fullName} /> */}
-        <DetailRow label="Date added:" value={formatDateTime(file.dateAdded.toISOString())} />
+        <DetailRow label="Date added:" value={formatDateTime(file.lastEdited.toISOString())} />
       </div>
     </>
   );
@@ -63,12 +63,12 @@ export const ShareInput = ({ file, onInputChange, onRemove }: Props) => {
           <div className="flex justify-between">
             <p className="subtitle-2 text-light-100">Shared with</p>
             <p className="subtitle-2 text-light-200">
-              {file.owners.length} users
+              {file.shareWith.length} users
             </p>
           </div>
 
           <ul className="pt-2">
-            {file.owners.map((email: string) => (
+            {file.shareWith.map((email: string) => (
               <li
                 key={email}
                 className="flex items-center justify-between gap-2"
