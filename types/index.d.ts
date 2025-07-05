@@ -31,7 +31,7 @@ declare global {
     owner: string,
     shareWith: string[]
   }
-  declare interface FileMeataData {
+  declare interface FileMetadata {
     id: string,
     name: string,
     type: FileType,
@@ -70,7 +70,7 @@ declare global {
     name: string;
   }
   declare interface UpdateFileUsersProps {
-    fileId: string;
+    fileMetadata: FileMetadata;
     emails: string[];
     path: string;
   }

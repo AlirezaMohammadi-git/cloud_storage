@@ -30,8 +30,10 @@ import {
 import { usePathname } from "next/navigation";
 import { FileDetails, ShareInput } from "@/components/ActionsModalContent";
 import { toast } from "sonner";
+import { testLog } from "@/lib/utils";
+import { error } from "console";
 
-const ActionDropdown = ({ file }: { file: FileMeataData }) => {
+const ActionDropdown = ({ file }: { file: FileMetadata }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [action, setAction] = useState<ActionType | null>(null);
@@ -92,19 +94,27 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
       rename: async () => {
         const renameResult = await renameFile({ fileId: file.id, name: name })
         if (renameResult.success) {
-          setShowToast({ show: true, type: "success", message: `"${file.name}" renamed to "${(renameResult.data as FileMeataData).name}"` })
-          setIsModalOpen(false);
+          setShowToast({ show: true, type: "success", message: `"${file.name}" renamed to "${(renameResult.data as FileMetadata).name}"` })
         } else {
           setShowToast({ show: true, type: "error", message: `"${file.name}" error: ${renameResult.error}` })
-          setIsModalOpen(false);
         }
+        return true;
       },
-      share: () => updateFileUsers({ fileId: file.id, emails, path }),
+      share: async () => {
+        const result = await updateFileUsers({ fileMetadata: file, emails, path });
+        if (!result?.success) {
+          setShowToast({ show: true, type: "error", message: `Failed to share ${file.name}.` })
+        } else {
+          setShowToast({ show: true, type: "success", message: `` })
+        }
+        return true;
+      },
       delete: async () => {
         const result = await deleteFile({ fileId: file.id, filePath: filePath })
         if (result.success) {
           setShowToast({ show: true, message: `"${file.name}" deleted successfully!`, type: "success" })
         }
+        return true;
       }
     };
 
@@ -119,7 +129,7 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
     const updatedEmails = emails.filter((e) => e !== email);
 
     const success = await updateFileUsers({
-      fileId: file.id,
+      fileMetadata: file,
       emails: updatedEmails,
       path,
     });

@@ -264,7 +264,7 @@
   }
 
   .recent-file-details {
-    @apply flex w-full flex-col xl:flex-row xl:justify-between !important;
+    @apply flex w-full flex-row xl:flex-row justify-between !important;
   }
 
   .recent-file-name {

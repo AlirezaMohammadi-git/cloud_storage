@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
-const ImageThumbnail = ({ file }: { file: FileMeataData }) => (
+const ImageThumbnail = ({ file }: { file: FileMetadata }) => (
   <div className="file-details-thumbnail">
     <Thumbnail type={file.type} extension={getFileType(file.name).extension} url={file.url} />
     <div className="flex flex-col">
@@ -24,7 +24,7 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-export const FileDetails = ({ file }: { file: FileMeataData }) => {
+export const FileDetails = ({ file }: { file: FileMetadata }) => {
   return (
     <>
       <ImageThumbnail file={file} />
@@ -39,12 +39,17 @@ export const FileDetails = ({ file }: { file: FileMeataData }) => {
 };
 
 interface Props {
-  file: FileMeataData;
+  file: FileMetadata;
   onInputChange: React.Dispatch<React.SetStateAction<string[]>>;
   onRemove: (email: string) => void;
 }
 
 export const ShareInput = ({ file, onInputChange, onRemove }: Props) => {
+
+  // get shared files from other users that shared some files with this user.  
+  // mark theme as shared
+
+
   return (
     <>
       <ImageThumbnail file={file} />

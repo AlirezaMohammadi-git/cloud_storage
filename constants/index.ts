@@ -113,7 +113,7 @@ export const passwords: Passwords[] = [
   }
 ]
 
-export const exampleFileMetadata: FileMeataData[] = [
+export const exampleFileMetadata: FileMetadata[] = [
   {
     id: "e64c54ae-36ad-4adb-932a-76d949f6104f",
     name: "testMetadata1",
