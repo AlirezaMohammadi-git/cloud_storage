@@ -16,9 +16,10 @@ export const FormattedFileSize = ({
     <>
       <div className="flex flex-row">
         <p className={cn("body-1 text-light-200", className)}>
-          {creationDate && `${formatDateTime(creationDate.toISOString())}${sizeInBytes ? " - " : ""}`}
-          {sizeInBytes && `${convertFileSize(sizeInBytes)}${shared ? " - " : ""}`}
-          {shared && `shared`}
+          {creationDate && `${formatDateTime(creationDate.toISOString())}${shared ? " - " : ""}`}
+          <span className="body-1 text-light-100 caption">
+            {shared && `shared`}
+          </span>
         </p>
       </div>
     </>

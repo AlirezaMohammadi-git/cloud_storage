@@ -391,7 +391,6 @@ export const getFiles = async ({
             const sharedFiles = (sharedFilesResult.data as FileMetadata[]);
             // filtering main array to prevent shared files duplication (when user share the file with itself!)
             const filteredArray = dtoData.filter(meta => meta.shareWith.length <= 0);
-            testLog("+++", filteredArray)
             return { success: true, data: [...filteredArray, ...sharedFiles] } as FileResult;
         }
 
