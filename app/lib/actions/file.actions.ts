@@ -1,40 +1,14 @@
 "use server";
 
-import { createAdminClient } from "@/lib/appwrite";
-import { appwriteConfig } from "@/lib/appwrite/config";
-import { convertFileSize, getFileType, parseStringify, uuidv4 } from "@/lib/utils";
+import { getFileType, testLog, uuidv4 } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import path from "path"
 import { mkdir, writeFile, readdir, readFile, rm, rename } from "fs/promises";
 import { existsSync } from "fs";
 import { pool } from "@/db";
 import { UPLOAD_SIZE_LIMIT_BYTES } from "@/constants";
-
-
-
-export const updateFileUsers = async ({
-    fileId,
-    emails,
-    path,
-}: UpdateFileUsersProps) => {
-    const { databases } = await createAdminClient();
-
-    try {
-        const updatedFile = await databases.updateDocument(
-            appwriteConfig.databaseId,
-            appwriteConfig.filesCollectionId,
-            fileId,
-            {
-                users: emails,
-            },
-        );
-
-        revalidatePath(path);
-        return parseStringify(updatedFile);
-    } catch (error) {
-        handleError(error);
-    }
-};
+import { auth, signOut } from "@/auth";
+import { redirect } from "next/navigation";
 
 
 // #################################################################
@@ -84,7 +58,7 @@ export async function getFileSize({ userId, fileName }: { userId: string, fileNa
 
 
 }
-export async function getAllFilesSizes({ userId, fileNames }: { userId: string, fileNames: FileMeataData[] }) {
+export async function getAllFilesSizes({ userId, fileNames }: { userId: string, fileNames: FileMetadata[] }) {
 
     try {
         const totalSizes = await Promise.all(
@@ -110,7 +84,7 @@ export async function getAllFilesSizes({ userId, fileNames }: { userId: string, 
 // #################################################################
 // ################### DASHBOARD UTILS #############################
 // #################################################################
-export const getUsageSummary = async (fileNames: FileMeataData[], userId: string) => {
+export const getUsageSummary = async (fileNames: FileMetadata[], userId: string) => {
 
     try {
         const images = fileNames.filter(fileName => fileName.type === "image")
@@ -175,7 +149,7 @@ const handleError = (error: unknown) => {
 // #################################################################
 
 // ################### CREATE
-async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> {
+async function uploadFileMetaData(metadata: FileMetadata): Promise<FileResult> {
     try {
 
         // 1. get all files metadata of this owner
@@ -183,7 +157,7 @@ async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> 
         const allMeta = await getAllFilesMetadata(metadata.owner);
         if (!allMeta.success) return { success: false, error: `failed to upload ${metadata.name}` } as FileResult;
 
-        const isAlreadyExists = (allMeta.data as FileMeataData[]).map(meta => meta.name).includes(metadata.name);
+        const isAlreadyExists = (allMeta.data as FileMetadata[]).map(meta => meta.name).includes(metadata.name);
 
         if (isAlreadyExists) return { success: false, error: `file already exists!` } as FileResult;
 
@@ -231,7 +205,7 @@ async function uploadFileMetaData(metadata: FileMeataData): Promise<FileResult> 
 export const uploadFile = async ({
     file,
     userId
-}: UploadFileProps) => {
+}: UploadFileProps): Promise<FileResult> => {
     try {
         const fileName = file.name.replaceAll(" ", "_")
         const dirPath = path.join(process.cwd(), `uploads/${userId}`)
@@ -246,7 +220,7 @@ export const uploadFile = async ({
         if (fileSize > (remainingUploadSize.data as number)) return { success: false, error: `2GB size limit reached. Couldn't upload "${fileName}"` } as FileResult;
 
         // uploading file metadata first:
-        const metaData: FileMeataData = {
+        const metaData: FileMetadata = {
             id: uuidv4(),
             name: fileName,
             type: getFileType(fileName).type as FileType,
@@ -286,11 +260,54 @@ async function getFileMetadata(fileId: string): Promise<FileResult> {
             type: meta.fType,
             url: meta.url,
             shareWith: meta.shareWith
-        } as FileMeataData;
+        } as FileMetadata;
         return { success: true, data: dtoMeta } as FileResult;
     } catch (err) {
         handleError(err);
         return { success: false, error: "Uncaught Exeption while getting file metadata." } as FileResult;
+    }
+}
+export async function getSharedMetadata(limit: number): Promise<FileResult> {
+    try {
+        const session = await auth();
+        const userEmail = session?.user?.email;
+        if (!userEmail) {
+            return { success: false, error: "User not found." };
+        }
+
+        // Use parameterized query with LIKE
+        // Note: The `%` must be added to the parameter, NOT to the placeholder
+        const emailPattern = `%${userEmail}%`;
+
+        const query = `
+  SELECT id, name, size, url, fType, owner, lastEdit, shareWith
+  FROM files_metadata
+  WHERE EXISTS (
+    SELECT 1
+    FROM unnest(shareWith) AS email
+    WHERE email ILIKE $1
+  )
+  LIMIT $2
+`;
+
+        const metaResult = await pool.query(query, [emailPattern, limit]);
+
+        testLog("metaShare result:", metaResult)
+        const dtoMeta: FileMetadata[] = metaResult.rows.map((meta) => ({
+            id: meta.id,
+            name: meta.name,
+            size: meta.size,
+            url: meta.url,
+            type: meta.ftype, // be careful: Postgres field is likely `ftype` not `fType`
+            owner: meta.owner,
+            lastEdited: meta.lastedit, // be consistent with your DB column names
+            shareWith: meta.sharewith,
+        }));
+
+        return { success: true, data: dtoMeta };
+    } catch (err) {
+        handleError(err);
+        return { success: false, error: "Couldn't get shared files." };
     }
 }
 async function getAllFilesMetadata(userId: string): Promise<FileResult> {
@@ -308,7 +325,7 @@ async function getAllFilesMetadata(userId: string): Promise<FileResult> {
                 type: meta.fType,
                 url: meta.url,
                 shareWith: meta.shareWith
-            } as FileMeataData;
+            } as FileMetadata;
             return dtoMeta;
         });
 
@@ -326,7 +343,7 @@ export async function getRemainingUploadSize(userId: string): Promise<FileResult
             return filesMeta;
         }
 
-        const metaArray = filesMeta.data as FileMeataData[];
+        const metaArray = filesMeta.data as FileMetadata[];
         if (metaArray.length === 0) return { success: true, data: UPLOAD_SIZE_LIMIT_BYTES } as FileResult;
 
         const totalFileSizes = metaArray
@@ -367,11 +384,19 @@ export const getFiles = async ({
                 size: data.size,
                 owner: data.owner,
                 lastEdited: data.lastedit,
-                shareWith: data.shareWith
-            } as FileMeataData;
+                shareWith: data.shareWith ? data.shareWith : []
+            } as FileMetadata;
         });
+        if (limit && dtoData.length < limit) {
+            const sharedFilesResult = await getSharedMetadata((limit - dtoData.length))
 
-        return { success: true, data: dtoData as FileMeataData[] } as FileResult;
+            testLog("getFiles", sharedFilesResult)
+            if (!sharedFilesResult.success) return { success: false, error: "Failed to get data." } as FileResult;
+            const sharedFiles = (sharedFilesResult.data as FileMetadata[]);
+            return { success: true, data: [...sharedFiles, ...dtoData] } as FileResult;
+        }
+
+        return { success: true, data: dtoData as FileMetadata[] } as FileResult;
 
     } catch (err) {
         handleError(err);
@@ -380,7 +405,7 @@ export const getFiles = async ({
 };
 
 // ################### UPDATE
-async function updateFileMetadata(newMeta: FileMeataData): Promise<FileResult> {
+async function updateFileMetadata(newMeta: FileMetadata): Promise<FileResult> {
     try {
         await pool.query(`UPDATE files_metadata 
             SET name=$1, fType=$2, url=$3, size=$4, lastEdit=$5, owner=$6, shareWith=$8 WHERE id=$7;`,
@@ -402,7 +427,7 @@ export const renameFile = async ({
         const previousFile = await getFileMetadata(fileId);
         if (!previousFile.success) return previousFile as FileResult;
 
-        let meta = previousFile.data as FileMeataData;
+        let meta = previousFile.data as FileMetadata;
         if (!meta.shareWith) {
             meta.shareWith = [];
         }
@@ -417,7 +442,7 @@ export const renameFile = async ({
             lastEdited: new Date(),
             owner: meta.owner,
             shareWith: meta.shareWith
-        } as FileMeataData;
+        } as FileMetadata;
 
         const newMetaResult = await updateFileMetadata(newMeta);
         if (!newMetaResult.success) return { success: false, error: `Uncough exeption. Couldn't update ${meta.name}!` } as FileResult;
@@ -433,6 +458,25 @@ export const renameFile = async ({
     } catch (err) {
         handleError(err);
         return { success: false, error: "Uncough exeption. Couldn't update file name!" } as FileResult;
+    }
+};
+export const updateFileUsers = async ({
+    fileMetadata,
+    emails,
+    path,
+}: UpdateFileUsersProps) => {
+
+    try {
+        const newMeta = {
+            ...fileMetadata,
+            shareWith: [...emails],
+        } as FileMetadata;
+        const updateResult = await updateFileMetadata(newMeta);
+        if (!updateResult.success) return updateResult;
+        revalidatePath(path);
+        return { success: true, data: newMeta } as FileResult;
+    } catch (error) {
+        handleError(error);
     }
 };
 
@@ -460,6 +504,7 @@ export async function deleteFile({ filePath, fileId }: { filePath: string, fileI
 
             // delete metadata after phisical one removed:
             const metaResult = await deleteFileMetadata(fileId);
+
             if (!metaResult.success) {
                 return metaResult;
             }

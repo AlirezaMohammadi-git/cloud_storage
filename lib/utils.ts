@@ -225,3 +225,7 @@ export function checkErrorCode(err: unknown, code: string, returnObj: unknown) {
     } else throw err;
   }
 }
+
+export function testLog(source: string, testCase: unknown) {
+  console.log(`⤬▶▶▶`, source, testCase)
+}

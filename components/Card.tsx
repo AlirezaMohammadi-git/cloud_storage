@@ -5,7 +5,7 @@ import { convertFileSize, getFileType } from "@/lib/utils";
 import FormattedDateTime from "@/components/FormattedFileSize";
 import ActionDropdown from "@/components/ActionDropdown";
 
-const Card = ({ file }: { file: FileMeataData }) => {
+const Card = ({ file }: { file: FileMetadata }) => {
   return (
     <Link href={file.url} target="_blank" className="file-card">
       <div className="flex justify-between">

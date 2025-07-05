@@ -1,17 +1,24 @@
 
 
+
+
 Feature : Recent files upload {
-todo : implement share functionality in 3 dot dropdown.
+
+//todo : implement share functionality in 3 dot dropdown (add a badge after file name thta shows it's shared!).
+
+// todo : show the owner of each file(name not email). (shared files should show their owner name)
+// fix : rename shouldn't work if user isn't the owner of file.
+// fix : delete file should work for only owner of files, if a shared file want to be deleted, then only remove it's email from shareWith colum.
+
 todo : make each card responsive for small screens;
 }
 
-
-
+// fix : change the redirect path to reall site path in auth.
 // tooltip :  git add . ':!todo' will stage all files excluding todo!
 
 
-//todo : implement search (Edit "getFiles" function to support search).
-//todo : implement file categories pages.
-//todo : protect seed route to be accessable only for admin users.
-//todo : add a landing page.
+todo : implement search (Edit "getFiles" function to support search).
+todo : implement file categories pages.
+todo : protect seed route to be accessable only for admin users.
+todo : add a landing page.
 
