@@ -291,8 +291,6 @@ export async function getSharedMetadata(limit: number): Promise<FileResult> {
 `;
 
         const metaResult = await pool.query(query, [emailPattern, limit]);
-
-        testLog("metaShare result:", metaResult)
         const dtoMeta: FileMetadata[] = metaResult.rows.map((meta) => ({
             id: meta.id,
             name: meta.name,
@@ -384,13 +382,11 @@ export const getFiles = async ({
                 size: data.size,
                 owner: data.owner,
                 lastEdited: data.lastedit,
-                shareWith: data.shareWith ? data.shareWith : []
+                shareWith: data.sharewith ? data.sharewith : []
             } as FileMetadata;
         });
         if (limit && dtoData.length < limit) {
             const sharedFilesResult = await getSharedMetadata((limit - dtoData.length))
-
-            testLog("getFiles", sharedFilesResult)
             if (!sharedFilesResult.success) return { success: false, error: "Failed to get data." } as FileResult;
             const sharedFiles = (sharedFilesResult.data as FileMetadata[]);
             return { success: true, data: [...sharedFiles, ...dtoData] } as FileResult;

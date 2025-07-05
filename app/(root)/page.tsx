@@ -4,12 +4,13 @@ import { Chart } from "@/components/Chart";
 import FormattedFileSize from "@/components/FormattedFileSize";
 import { Thumbnail } from "@/components/Thumbnail";
 import { getFiles, getFileSize, getTotalSpaceUsed, getUsageSummary, createFileUrl } from "@/app/lib/actions/file.actions";
-import { getFileType } from "@/lib/utils";
+import { getFileType, testLog } from "@/lib/utils";
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import path from "path";
 import { Separator } from "@radix-ui/react-separator";
 import Image from "next/image";
+import { getUserFromDb, getUserNameById } from "../lib/actions/user.db.actions";
 
 const Dashboard = async () => {
 
@@ -28,8 +29,6 @@ const Dashboard = async () => {
   const fileNames = (files.data as FileMetadata[]);
   // Get usage summary
   const usageSummary = await getUsageSummary(fileNames.filter(meta => meta.owner === session.user.id), session.user.id);
-
-
 
   return (
 
@@ -82,6 +81,7 @@ const Dashboard = async () => {
 
                   const fileURL = await createFileUrl(session.user.id, file.name);
 
+                  const ownerName = await getUserNameById(file.owner, session.user)
 
                   return (
                     <div
@@ -111,7 +111,7 @@ const Dashboard = async () => {
 
                         </div>
                       </Link>
-                      <ActionDropdown file={file} />
+                      <ActionDropdown file={file} owner={ownerName} currentUserId={session.user.id} />
                     </div>
                   )
                 })}

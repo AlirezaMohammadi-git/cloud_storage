@@ -4,9 +4,8 @@
 
 Feature : Recent files upload {
 
-//todo : implement share functionality in 3 dot dropdown (add a badge after file name thta shows it's shared!).
-
-// todo : show the owner of each file(name not email). (shared files should show their owner name)
+// fixed : show the owner of each file(name not email). (shared files should show their owner name)
+// done : disable rename and share on shared files.
 // fix : rename shouldn't work if user isn't the owner of file.
 // fix : delete file should work for only owner of files, if a shared file want to be deleted, then only remove it's email from shareWith colum.
 
@@ -21,4 +20,8 @@ todo : implement search (Edit "getFiles" function to support search).
 todo : implement file categories pages.
 todo : protect seed route to be accessable only for admin users.
 todo : add a landing page.
+
+session 1 : 40min;
+session 2 : 50min;
+session 3 : 20min;
 

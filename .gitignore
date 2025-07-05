@@ -10,9 +10,6 @@
 !.yarn/releases
 !.yarn/versions
 
-## uploaded files
-/uploads/*
-
 # testing
 /coverage
 
@@ -42,3 +39,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.local
+
+
+## uploaded files
+/uploads/*
+## todos
+todo
+

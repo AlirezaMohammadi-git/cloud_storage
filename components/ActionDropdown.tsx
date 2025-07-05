@@ -30,10 +30,8 @@ import {
 import { usePathname } from "next/navigation";
 import { FileDetails, ShareInput } from "@/components/ActionsModalContent";
 import { toast } from "sonner";
-import { testLog } from "@/lib/utils";
-import { error } from "console";
 
-const ActionDropdown = ({ file }: { file: FileMetadata }) => {
+const ActionDropdown = ({ file, owner, currentUserId }: { file: FileMetadata, owner: string, currentUserId: string }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [action, setAction] = useState<ActionType | null>(null);
@@ -75,13 +73,14 @@ const ActionDropdown = ({ file }: { file: FileMetadata }) => {
   }, [showToast])
 
   const path = usePathname();
+  const isShared = currentUserId !== file.owner;
 
   const closeAllModals = () => {
     setIsModalOpen(false);
     setIsDropdownOpen(false);
     setAction(null);
     setName(file.name);
-    //   setEmails([]);
+    setEmails([]);
   };
 
   const handleAction = async () => {
@@ -101,7 +100,7 @@ const ActionDropdown = ({ file }: { file: FileMetadata }) => {
         return true;
       },
       share: async () => {
-        const result = await updateFileUsers({ fileMetadata: file, emails, path });
+        const result = await updateFileUsers({ fileMetadata: file, emails: [...file.shareWith, ...emails], path });
         if (!result?.success) {
           setShowToast({ show: true, type: "error", message: `Failed to share ${file.name}.` })
         } else {
@@ -142,7 +141,6 @@ const ActionDropdown = ({ file }: { file: FileMetadata }) => {
     if (!action) return null;
 
     const { value, label } = action;
-
     return (
       <DialogContent className="shad-dialog button">
         <DialogHeader className="flex flex-col gap-3">
@@ -156,7 +154,7 @@ const ActionDropdown = ({ file }: { file: FileMetadata }) => {
               onChange={(e) => setName(e.target.value)}
             />
           )}
-          {value === "details" && <FileDetails file={file} />}
+          {value === "details" && <FileDetails file={file} owner={owner} />}
           {value === "share" && (
             <ShareInput
               file={file}
@@ -213,10 +211,10 @@ const ActionDropdown = ({ file }: { file: FileMetadata }) => {
           {actionsDropdownItems.map((actionItem) => (
             <DropdownMenuItem
               key={actionItem.value}
+              disabled={(actionItem.value === "rename" || actionItem.value === "share") ? isShared : false}
               className="shad-dropdown-item"
               onClick={() => {
                 setAction(actionItem);
-
                 if (
                   ["rename", "share", "delete", "details"].includes(
                     actionItem.value,

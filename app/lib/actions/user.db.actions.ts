@@ -7,9 +7,10 @@ import { AuthError } from "next-auth";
 import { pool } from "@/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { handleError } from "@/lib/utils"
 
 // use only for credential method:
-export async function getUserFromDb(email?: string, id?: string) {
+export async function getUserFromDb(email?: string | null, id?: string) {
     const client = await pool.connect()
     try {
         if (email) {
@@ -43,6 +44,17 @@ export async function getUserFromDb(email?: string, id?: string) {
         throw new Error("Failed to load user from db.")
     } finally {
         client.release();
+    }
+}
+export async function getUserNameById(userId: string, currentUser?: User): Promise<string> {
+    if (currentUser && userId === currentUser.id) return currentUser.fullname;
+    try {
+        const userRes = await getUserFromDb(null, userId);
+        if (!userRes) return "User not found!"
+        return userRes.fullname;
+    } catch (err) {
+        handleError(err, "user.db.actions")
+        return "User not found!";
     }
 }
 export async function comparePasswords(userId: string, password: string) {

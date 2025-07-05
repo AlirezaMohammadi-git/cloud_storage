@@ -24,14 +24,14 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-export const FileDetails = ({ file }: { file: FileMetadata }) => {
+export const FileDetails = ({ file, owner }: { file: FileMetadata, owner: string }) => {
   return (
     <>
       <ImageThumbnail file={file} />
       <div className="space-y-4 px-2 pt-2">
         <DetailRow label="Format:" value={getFileType(file.name).extension} />
         <DetailRow label="Size:" value={convertFileSize(file.size)} />
-        {/* <DetailRow label="Owner:" value={file.owner.fullName} /> */}
+        <DetailRow label="Owner:" value={owner} />
         <DetailRow label="Date added:" value={formatDateTime(file.lastEdited.toISOString())} />
       </div>
     </>
@@ -46,14 +46,9 @@ interface Props {
 
 export const ShareInput = ({ file, onInputChange, onRemove }: Props) => {
 
-  // get shared files from other users that shared some files with this user.  
-  // mark theme as shared
-
-
   return (
     <>
       <ImageThumbnail file={file} />
-
       <div className="share-wrapper">
         <p className="subtitle-2 pl-1 text-light-100">
           Share file with other users
@@ -61,7 +56,7 @@ export const ShareInput = ({ file, onInputChange, onRemove }: Props) => {
         <Input
           type="email"
           placeholder="Enter email address"
-          onChange={(e) => onInputChange(e.target.value.trim().split(","))}
+          onChange={(e) => onInputChange([e.target.value.trim()])}
           className="share-input-field"
         />
         <div className="pt-4">
