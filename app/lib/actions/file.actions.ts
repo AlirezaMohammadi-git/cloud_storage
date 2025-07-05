@@ -389,7 +389,10 @@ export const getFiles = async ({
             const sharedFilesResult = await getSharedMetadata((limit - dtoData.length))
             if (!sharedFilesResult.success) return { success: false, error: "Failed to get data." } as FileResult;
             const sharedFiles = (sharedFilesResult.data as FileMetadata[]);
-            return { success: true, data: [...sharedFiles, ...dtoData] } as FileResult;
+            // filtering main array to prevent shared files duplication (when user share the file with itself!)
+            const filteredArray = dtoData.filter(meta => meta.shareWith.length <= 0);
+            testLog("+++", filteredArray)
+            return { success: true, data: [...filteredArray, ...sharedFiles] } as FileResult;
         }
 
         return { success: true, data: dtoData as FileMetadata[] } as FileResult;
@@ -488,27 +491,47 @@ async function deleteFileMetadata(fileId: string): Promise<FileResult> {
     }
 
 }
-export async function deleteFile({ filePath, fileId }: { filePath: string, fileId: string }): Promise<FileResult> {
+export async function deleteFile({ fileMeta, user }: { fileMeta: FileMetadata, user: User }): Promise<FileResult> {
     try {
         try {
-            await rm(filePath, {
-                force: true,
-                maxRetries: 2,
-                recursive: true,
-                retryDelay: 100,
-            });
 
-            // delete metadata after phisical one removed:
-            const metaResult = await deleteFileMetadata(fileId);
+            if (fileMeta.owner === user.id) {
 
-            if (!metaResult.success) {
-                return metaResult;
+                const filePath = await getFilePath({ fileName: fileMeta.name, userId: fileMeta.owner })
+                await rm(filePath, {
+                    force: true,
+                    maxRetries: 2,
+                    recursive: true,
+                    retryDelay: 100,
+                });
+
+                // delete metadata after phisical one removed:
+                const metaResult = await deleteFileMetadata(fileMeta.id);
+
+                if (!metaResult.success) {
+                    return metaResult;
+                }
+
+
+            } else {
+                const newMeta = {
+                    name: fileMeta.name,
+                    id: fileMeta.id,
+                    url: fileMeta.url,
+                    type: getFileType(fileMeta.name).type,
+                    size: fileMeta.size,
+                    lastEdited: new Date(),
+                    owner: fileMeta.owner,
+                    shareWith: fileMeta.shareWith.filter(id => id !== user.email)
+                } as FileMetadata;
+                testLog("previousMeta : ", fileMeta);
+                testLog("new Meta : ", newMeta);
+                const updateResult = await updateFileMetadata(newMeta);
+                if (!updateResult.success) return { success: false, error: `Couldn't delete ${fileMeta.name}` } as FileResult;
             }
 
-
-
         } catch (fsError) {
-            console.error(`Failed to delete file at ${filePath}:`, fsError);
+            console.error(`Failed to delete ${fileMeta.name}:`, fsError);
             return { success: false, error: "Physical file couldn't be removed." };
         }
 

@@ -31,7 +31,7 @@ import { usePathname } from "next/navigation";
 import { FileDetails, ShareInput } from "@/components/ActionsModalContent";
 import { toast } from "sonner";
 
-const ActionDropdown = ({ file, owner, currentUserId }: { file: FileMetadata, owner: string, currentUserId: string }) => {
+const ActionDropdown = ({ file, owner, currentUser }: { file: FileMetadata, owner: string, currentUser: User }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [action, setAction] = useState<ActionType | null>(null);
@@ -73,7 +73,7 @@ const ActionDropdown = ({ file, owner, currentUserId }: { file: FileMetadata, ow
   }, [showToast])
 
   const path = usePathname();
-  const isShared = currentUserId !== file.owner;
+  const isShared = currentUser.id !== file.owner;
 
   const closeAllModals = () => {
     setIsModalOpen(false);
@@ -104,12 +104,12 @@ const ActionDropdown = ({ file, owner, currentUserId }: { file: FileMetadata, ow
         if (!result?.success) {
           setShowToast({ show: true, type: "error", message: `Failed to share ${file.name}.` })
         } else {
-          setShowToast({ show: true, type: "success", message: `` })
+          setShowToast({ show: true, type: "success", message: `${file.name} successfully shared` })
         }
         return true;
       },
       delete: async () => {
-        const result = await deleteFile({ fileId: file.id, filePath: filePath })
+        const result = await deleteFile({ fileMeta: file, user: currentUser })
         if (result.success) {
           setShowToast({ show: true, message: `"${file.name}" deleted successfully!`, type: "success" })
         }
@@ -134,7 +134,7 @@ const ActionDropdown = ({ file, owner, currentUserId }: { file: FileMetadata, ow
     });
 
     if (success) setEmails(updatedEmails);
-    closeAllModals();
+    setShowToast({ show: true, type: "success", message: `${email} deleted` })
   };
 
   const renderDialogContent = () => {

@@ -111,7 +111,7 @@ const Dashboard = async () => {
 
                         </div>
                       </Link>
-                      <ActionDropdown file={file} owner={ownerName} currentUserId={session.user.id} />
+                      <ActionDropdown file={file} owner={ownerName} currentUser={session.user} />
                     </div>
                   )
                 })}
