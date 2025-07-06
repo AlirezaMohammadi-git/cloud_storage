@@ -58,71 +58,72 @@ export async function getFileSize({ userId, fileName }: { userId: string, fileNa
 
 
 }
-export async function getAllFilesSizes({ userId, fileNames }: { userId: string, fileNames: FileMetadata[] }) {
-
-    try {
-        const totalSizes = await Promise.all(
-            fileNames.map(async (metadata) => {
-                const filePath = path.join(process.cwd(), `uploads/${userId}/${metadata.name}`);
-                const buffer = await readFile(filePath);
-                return buffer.byteLength;
-            })
-        );
-
-        const totalSize = totalSizes.reduce((previous, current) => previous + current, 0)
-
-        return { success: true, data: totalSize } as FileResult;
-
-    } catch (err) {
-        handleError(err);
-        return { success: false, error: "Couldn't get sizes!" } as FileResult;
-    }
-
-
-}
 
 // #################################################################
 // ################### DASHBOARD UTILS #############################
 // #################################################################
-export const getUsageSummary = async (fileNames: FileMetadata[], userId: string) => {
-
+export const getUsageSummary = async (user: User) => {
+    const files = await getFiles({
+        user: user,
+    })
+    if (!files.success) return [];
+    const fileMeta = (files.data as FileMetadata[])
     try {
-        const images = fileNames.filter(fileName => fileName.type === "image")
-        const videos = fileNames.filter(fileName => fileName.type === "video")
-        const audios = fileNames.filter(fileName => (fileName).type === "audio")
-        const documents = fileNames.filter(fileName => (fileName).type === "document")
-        const other = fileNames.filter(fileName => (fileName).type === "other")
+        let totalDocumentSize = 0;
+        let totalImageSize = 0;
+        let totalVideoSize = 0;
+        let totalAudioSize = 0;
+        let totalOtherSize = 0;
 
-        const imageSize = await getAllFilesSizes({ userId: userId, fileNames: images })
-        const videoSize = await getAllFilesSizes({ userId: userId, fileNames: videos })
-        const audioSize = await getAllFilesSizes({ userId: userId, fileNames: audios })
-        const documentSize = await getAllFilesSizes({ userId: userId, fileNames: documents })
-        const otherSize = await getAllFilesSizes({ userId: userId, fileNames: other })
+        fileMeta.forEach(file => {
+            const size = Number(file.size) || 0;
 
-        const mediaSize = (videoSize.success ? videoSize.data as number : 0) + (audioSize.success ? audioSize.data as number : 0);
+            switch (file.type) {
+                case "document":
+                    totalDocumentSize += size;
+                    break;
+                case "image":
+                    totalImageSize += size;
+                    break;
+                case "video":
+                    totalVideoSize += size;
+                    break;
+                case "audio":
+                    totalAudioSize += size;
+                    break;
+                case "other":
+                    totalOtherSize += size;
+                    break;
+                default:
+                    totalOtherSize += size;
+                    break;
+            }
+        });
+
+        const mediaSize = totalVideoSize + totalAudioSize;
 
         return [
             {
                 title: "Documents",
-                size: documentSize.success ? documentSize.data as number : 0,
+                size: totalDocumentSize,
                 icon: "/assets/icons/file-document-light.svg",
                 url: "/documents",
             },
             {
                 title: "Images",
-                size: imageSize.success ? imageSize.data as number : 0,
+                size: totalImageSize,
                 icon: "/assets/icons/file-image-light.svg",
                 url: "/images",
             },
             {
                 title: "Media",
-                size: mediaSize as number,
+                size: mediaSize,
                 icon: "/assets/icons/file-video-light.svg",
                 url: "/media",
             },
             {
                 title: "Others",
-                size: otherSize.success ? otherSize.data as number : 0,
+                size: totalOtherSize,
                 icon: "/assets/icons/file-other-light.svg",
                 url: "/others",
             },
@@ -131,7 +132,6 @@ export const getUsageSummary = async (fileNames: FileMetadata[], userId: string)
         handleError(err);
         return [];
     }
-
 };
 export async function getFilePath({ fileName, userId }: { fileName: string, userId: string }) {
     return path.join(process.cwd(), "uploads", userId, fileName);
@@ -357,52 +357,89 @@ export async function getRemainingUploadSize(userId: string): Promise<FileResult
     }
 
 }
+const VALID_SORT_COLUMNS = ["lastedit", "name", "size"]; // adjust to your DB columns
+
 export const getFiles = async ({
-    userId,
-    userEmail,
+    user,
     types = [],
     searchText = "",
-    sort = "",
+    sort = "lastedit DESC",
     limit,
 }: GetFilesProps): Promise<FileResult> => {
-
-    const dirPath = path.join(process.cwd(), `uploads/${userId}/`)
-    const userDir = existsSync(dirPath)
-
-    // user doesn't have any file!
-    if (!userDir) return { success: true, data: [] } as FileResult;
-
     try {
-        const filesInDir = await pool.query(`SELECT * FROM files_metadata where owner=$1 ORDER BY lastEdit DESC LIMIT $2;`, [userId, limit])
-        const dtoData = filesInDir.rows.map(data => {
-            return {
-                id: data.id,
-                name: data.name,
-                type: data.ftype,
-                url: data.url,
-                size: data.size,
-                owner: data.owner,
-                lastEdited: data.lastedit,
-                shareWith: data.sharewith ? data.sharewith : []
-            } as FileMetadata;
-        });
-        if (limit && dtoData.length < limit) {
-            const sharedFilesResult = await getSharedMetadata((limit - dtoData.length))
-            if (!sharedFilesResult.success) return { success: false, error: "Failed to get data." } as FileResult;
-            const sharedFiles = (sharedFilesResult.data as FileMetadata[])
-                .filter(meta => meta.owner !== userId);
-            testLog("file", sharedFiles)
-            // filtering main array to prevent shared files duplication (when user share the file with itself!)
-            return { success: true, data: [...dtoData, ...sharedFiles] } as FileResult;
+        const dirPath = path.join(process.cwd(), `uploads/${user.id}/`);
+        if (!existsSync(dirPath)) {
+            return { success: true, data: [] };
         }
 
-        return { success: true, data: dtoData as FileMetadata[] } as FileResult;
+        // Validate and sanitize sort input
+        let orderByClause = "ORDER BY lastedit DESC";
+        if (sort) {
+            const [column, direction = "ASC"] = sort.split(" ");
+            if (
+                VALID_SORT_COLUMNS.includes(column.toLowerCase()) &&
+                ["ASC", "DESC"].includes(direction.toUpperCase())
+            ) {
+                orderByClause = `ORDER BY ${column} ${direction.toUpperCase()}`;
+            }
+        }
 
+        // Build WHERE conditions
+        const conditions: string[] = ["owner = $1"];
+        const values: any[] = [user.id];
+        let paramIndex = values.length + 1;
+
+        if (types.length > 0) {
+            conditions.push(`ftype = ANY($${paramIndex})`);
+            values.push(types);
+            paramIndex++;
+        }
+
+        if (searchText) {
+            conditions.push(`name ILIKE $${paramIndex}`);
+            values.push(`%${searchText}%`);
+            paramIndex++;
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+        let limitClause = "";
+        if (limit) {
+            limitClause = `LIMIT $${paramIndex}`;
+            values.push(limit);
+        }
+
+        const query = `
+      SELECT id, name, ftype, url, size, owner, lastedit, sharewith
+      FROM files_metadata
+      ${whereClause}
+      ${orderByClause}
+      ${limitClause};
+    `;
+
+        const filesInDir = await pool.query(query, values);
+
+        let dtoData: FileMetadata[] = filesInDir.rows.map(data => ({
+            id: data.id,
+            name: data.name,
+            type: data.ftype,
+            url: data.url,
+            size: data.size,
+            owner: data.owner,
+            lastEdited: data.lastedit,
+            shareWith: data.sharewith || [],
+        }));
+
+        return { success: true, data: dtoData };
     } catch (err) {
         handleError(err);
-        return { success: false, error: "can't read files from server!" } as FileResult;
+        return { success: false, error: "Can't read files from server!" };
     }
 };
+
+
+
+
 
 // ################### UPDATE
 async function updateFileMetadata(newMeta: FileMetadata): Promise<FileResult> {

@@ -125,8 +125,7 @@ const ActionDropdown = ({ file, owner, currentUser }: { file: FileMetadata, owne
   };
 
   const handleRemoveUser = async (email: string) => {
-    const updatedEmails = emails.filter((e) => e !== email);
-
+    const updatedEmails = file.shareWith.filter((e) => e !== email);
     const success = await updateFileUsers({
       fileMetadata: file,
       emails: updatedEmails,
@@ -199,8 +198,8 @@ const ActionDropdown = ({ file, owner, currentUser }: { file: FileMetadata, owne
           <Image
             src="/assets/icons/dots.svg"
             alt="dots"
-            width={34}
-            height={34}
+            width={28}
+            height={28}
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent>

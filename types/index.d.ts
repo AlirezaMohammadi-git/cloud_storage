@@ -59,13 +59,14 @@ declare global {
     userId: string;
   }
   declare interface GetFilesProps {
-    userId: string,
-    userEmail: string,
-    types: FileType[];
-    searchText?: string;
-    sort?: string;
-    limit?: number;
+    user: User,
+    shared?: boolean
+    types?: string[]
+    searchText?: string
+    sort?: string
+    limit?: number
   }
+
   declare interface RenameFileProps {
     fileId: string;
     name: string;

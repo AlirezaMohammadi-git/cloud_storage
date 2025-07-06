@@ -18,19 +18,19 @@ const Dashboard = async () => {
   if (!session) throw Error("User not authenticated!");
   const files = await getFiles(
     {
-      userId: session.user.id,
-      userEmail: session.user.email,
-      types: [],
+      user: session.user,
       searchText: "",
-      limit: 10
+      limit: 8
     }
   )
 
   const totalUsedSpace = await getTotalSpaceUsed({ userId: session.user.id })
   if (!files?.success) return notFound();
-  const fileNames = (files.data as FileMetadata[]);
+  const filesMeta = (files.data as FileMetadata[]);
   // Get usage summary
-  const usageSummary = await getUsageSummary(fileNames.filter(meta => meta.owner === session.user.id), session.user.id);
+  const usageSummary = await getUsageSummary(session.user);
+
+  console.log("root page file lenghe : ", filesMeta.filter(file => file.type === "document").length)
 
   return (
 
@@ -77,7 +77,7 @@ const Dashboard = async () => {
         {
           <section className="dashboard-recent-files">
             <h2 className="h3 xl:h2 text-light-100">Recent files uploaded</h2>
-            {fileNames.length > 0 ? (
+            {filesMeta.length > 0 ? (
               <ul className="mt-5 flex flex-col gap-5">
                 {(files.data as FileMetadata[]).map(async (file: FileMetadata) => {
 
