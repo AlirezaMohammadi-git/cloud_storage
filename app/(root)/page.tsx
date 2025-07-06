@@ -4,7 +4,7 @@ import { Chart } from "@/components/Chart";
 import FormattedFileSize from "@/components/FormattedFileSize";
 import { Thumbnail } from "@/components/Thumbnail";
 import { getFiles, getTotalSpaceUsed, getUsageSummary, createFileUrl } from "@/app/lib/actions/file.actions";
-import { getFileType } from "@/lib/utils";
+import { getFileType, testLog } from "@/lib/utils";
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import path from "path";
@@ -19,11 +19,13 @@ const Dashboard = async () => {
   const files = await getFiles(
     {
       userId: session.user.id,
+      userEmail: session.user.email,
       types: [],
       searchText: "",
       limit: 10
     }
   )
+
   const totalUsedSpace = await getTotalSpaceUsed({ userId: session.user.id })
   if (!files?.success) return notFound();
   const fileNames = (files.data as FileMetadata[]);
@@ -102,7 +104,6 @@ const Dashboard = async () => {
                           <p className="recent-file-name">{file.name}</p>
                           {
                             <FormattedFileSize
-                              sizeInBytes={file.size}
                               creationDate={file.lastEdited}
                               shared={file.owner !== session.user.id}
                               className="caption"

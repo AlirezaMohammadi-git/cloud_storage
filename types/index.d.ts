@@ -60,6 +60,7 @@ declare global {
   }
   declare interface GetFilesProps {
     userId: string,
+    userEmail: string,
     types: FileType[];
     searchText?: string;
     sort?: string;

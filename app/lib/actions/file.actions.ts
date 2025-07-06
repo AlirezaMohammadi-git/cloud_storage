@@ -1,14 +1,14 @@
 "use server";
 
-import { getFileType, testLog, uuidv4 } from "@/lib/utils";
+import { getFileType, uuidv4 } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import path from "path"
 import { mkdir, writeFile, readdir, readFile, rm, rename } from "fs/promises";
 import { existsSync } from "fs";
 import { pool } from "@/db";
 import { UPLOAD_SIZE_LIMIT_BYTES } from "@/constants";
-import { auth, signOut } from "@/auth";
-import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { testLog } from "@/lib/utils";
 
 
 // #################################################################
@@ -359,6 +359,7 @@ export async function getRemainingUploadSize(userId: string): Promise<FileResult
 }
 export const getFiles = async ({
     userId,
+    userEmail,
     types = [],
     searchText = "",
     sort = "",
@@ -388,10 +389,11 @@ export const getFiles = async ({
         if (limit && dtoData.length < limit) {
             const sharedFilesResult = await getSharedMetadata((limit - dtoData.length))
             if (!sharedFilesResult.success) return { success: false, error: "Failed to get data." } as FileResult;
-            const sharedFiles = (sharedFilesResult.data as FileMetadata[]);
+            const sharedFiles = (sharedFilesResult.data as FileMetadata[])
+                .filter(meta => meta.owner !== userId);
+            testLog("file", sharedFiles)
             // filtering main array to prevent shared files duplication (when user share the file with itself!)
-            const filteredArray = dtoData.filter(meta => meta.shareWith.length <= 0);
-            return { success: true, data: [...filteredArray, ...sharedFiles] } as FileResult;
+            return { success: true, data: [...dtoData, ...sharedFiles] } as FileResult;
         }
 
         return { success: true, data: dtoData as FileMetadata[] } as FileResult;
