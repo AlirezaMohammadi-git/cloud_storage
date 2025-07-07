@@ -26,6 +26,11 @@ export const navItems = [
     icon: "/assets/icons/others.svg",
     url: "/others",
   },
+  {
+    name: "Shared",
+    icon: "/assets/icons/share-2.svg",
+    url: "/shared",
+  },
 ];
 
 export const actionsDropdownItems = [
@@ -58,11 +63,11 @@ export const actionsDropdownItems = [
 
 export const sortTypes = [
   {
-    label: "Date created (newest)",
+    label: "Date Edited (newest)",
     value: "lastedit DESC",
   },
   {
-    label: "Created Date (oldest)",
+    label: "Date Edited (oldest)",
     value: "lastedit ASC",
   },
   {
@@ -84,7 +89,7 @@ export const sortTypes = [
 ];
 
 export const avatarPlaceholderUrl =
-  "https://img.freepik.com/free-psd/3d-illustration-person-with-sunglasses_23-2149436188.jpg";
+  "https://avatar.iran.liara.run/public";
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 

@@ -1,6 +1,6 @@
 import React from "react";
 import Sort from "@/components/Sort";
-import { getFiles, getFileSize } from "@/app/lib/actions/file.actions";
+import { getFiles, getSharedFiles } from "@/app/lib/actions/file.actions";
 import Card from "@/components/Card";
 import { convertFileSize, getFileTypesParams } from "@/lib/utils";
 import { auth } from "@/auth";
@@ -14,13 +14,20 @@ const Page = async ({ searchParams, params }: SearchParamProps) => {
   const session = await auth();
   if (!session) return null;
 
-  const filesResult = await getFiles({
-    user: session.user,
-    types: types,
-    searchText: searchText,
-    sort: sort,
-    shared: true
-  });
+  let filesResult;
+  if (type === "shared") {
+
+    filesResult = await getSharedFiles(session.user.email, sort)
+
+  } else {
+    filesResult = await getFiles({
+      user: session.user,
+      types: types,
+      searchText: searchText,
+      sort: sort,
+      shared: true
+    });
+  }
 
   if (!filesResult.success) return (<p className="shad-form-message w-full text-center">{`${filesResult.error}`}</p>)
 

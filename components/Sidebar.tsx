@@ -50,8 +50,10 @@ const Sidebar = ({ fullname, avatar, email }: Props) => {
                   width={24}
                   height={24}
                   className={cn(
-                    "nav-icon",
-                    pathname === url && "nav-icon-active",
+                    name === "Shared" && "opacity-25",
+                    name !== "Shared" && "nav-icon",
+                    pathname === url && name !== "Shared" && "nav-icon-active",
+                    pathname === url && name === "Shared" && "filter invert opacity-100",
                   )}
                 />
                 <p className="hidden lg:block">{name}</p>

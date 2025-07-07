@@ -8,7 +8,7 @@ declare global {
 
 
   //################  files related types
-  declare type FileType = "document" | "image" | "video" | "audio" | "other";
+  declare type FileType = "document" | "image" | "video" | "audio" | "other" | "shared";
   declare type FileResult = {
     success: true,
     data: unknown,

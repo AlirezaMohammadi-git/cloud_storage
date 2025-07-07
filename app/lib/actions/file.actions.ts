@@ -437,6 +437,68 @@ export const getFiles = async ({
     }
 };
 
+export async function getSharedFiles(userEmail: string, sort: string = "lastedit DESC", limit?: number): Promise<FileResult> {
+
+    try {
+
+        // Validate and sanitize sort input
+        let orderByClause = "ORDER BY lastedit DESC";
+        if (sort) {
+            const [column, direction = "ASC"] = sort.split(" ");
+            if (
+                VALID_SORT_COLUMNS.includes(column.toLowerCase()) &&
+                ["ASC", "DESC"].includes(direction.toUpperCase())
+            ) {
+                orderByClause = `ORDER BY ${column} ${direction.toUpperCase()}`;
+            }
+        }
+
+        // Use parameterized query with LIKE
+        // Note: The `%` must be added to the parameter, NOT to the placeholder
+        const emailPattern = `%${userEmail}%`;
+        const condition = limit ? [`
+        EXISTS (
+            SELECT 1
+            FROM unnest(shareWith) AS email
+            WHERE email ILIKE $1
+        ) ${orderByClause}
+             LIMIT $2`] : [`
+        EXISTS (
+            SELECT 1
+            FROM unnest(shareWith) AS email
+            WHERE email ILIKE $1
+        ) ${orderByClause}`
+        ];
+        const values = limit ? [emailPattern, limit] : [emailPattern]
+
+
+
+        const query = `
+          SELECT * FROM files_metadata
+            WHERE ${condition}`;
+
+        const metaResult = await pool.query(query, values);
+        const dtoMeta: FileMetadata[] = metaResult.rows.map((meta) => ({
+            id: meta.id,
+            name: meta.name,
+            size: meta.size,
+            url: meta.url,
+            type: meta.ftype, // be careful: Postgres field is likely `ftype` not `fType`
+            owner: meta.owner,
+            lastEdited: meta.lastedit, // be consistent with your DB column names
+            shareWith: meta.sharewith,
+        }));
+
+        return { success: true, data: dtoMeta };
+
+
+    } catch (err) {
+        handleError(err);
+        return { success: false, error: "Failed to get files!" } as FileResult;
+    }
+
+}
+
 
 
 
