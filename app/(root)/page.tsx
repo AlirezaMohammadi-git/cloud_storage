@@ -29,9 +29,6 @@ const Dashboard = async () => {
   const filesMeta = (files.data as FileMetadata[]);
   // Get usage summary
   const usageSummary = await getUsageSummary(session.user);
-
-  console.log("root page file lenghe : ", filesMeta.filter(file => file.type === "document").length)
-
   return (
 
     <>

@@ -229,7 +229,7 @@ export const uploadFile = async ({
             url: await createFileUrl(userId, metaID),
             lastEdited: new Date(),
             owner: userId,
-            shareWith: [""]
+            shareWith: []
         }
         const metadata = await uploadFileMetaData(metaData);
         if (!metadata?.success) return metadata as FileResult;

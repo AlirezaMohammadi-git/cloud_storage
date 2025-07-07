@@ -30,6 +30,7 @@ import {
 import { usePathname } from "next/navigation";
 import { FileDetails, ShareInput } from "@/components/ActionsModalContent";
 import { toast } from "sonner";
+import { z, ZodError } from "zod";
 
 const ActionDropdown = ({ file, owner, currentUser }: { file: FileMetadata, owner: string, currentUser: User }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,12 +84,12 @@ const ActionDropdown = ({ file, owner, currentUser }: { file: FileMetadata, owne
     setEmails([]);
   };
 
+  const emailVlidator = z.string().email();
+
   const handleAction = async () => {
     if (!action) return;
     setIsLoading(true);
     let success = false;
-
-    const filePath = await getFilePath({ fileName: file.name, userId: file.owner })
     const actions = {
       rename: async () => {
         const renameResult = await renameFile({ fileId: file.id, name: name })
@@ -100,6 +101,26 @@ const ActionDropdown = ({ file, owner, currentUser }: { file: FileMetadata, owne
         return true;
       },
       share: async () => {
+
+        //## validating email format
+        try {
+          emailVlidator.parse(emails[0])
+        } catch (err) {
+          if (err instanceof ZodError) {
+            setShowToast({ show: true, type: "error", message: `${err.issues[0].message}` })
+            return false;
+          }
+        }
+        //## Preventing user to share file with itself!
+        if (emails.includes(currentUser.email)) {
+          setShowToast({ show: true, type: "error", message: `You can't share this file with yourself!` })
+          return false;
+        }
+        //## Preventing user to share a file that is already shared!
+        if (file.shareWith && file.shareWith.includes(emails[0])) {
+          setShowToast({ show: true, type: "error", message: `File Already shared with specified email!` })
+          return false;
+        }
         const result = await updateFileUsers({ fileMetadata: file, emails: [...file.shareWith, ...emails], path });
         if (!result?.success) {
           setShowToast({ show: true, type: "error", message: `Failed to share ${file.name}.` })
