@@ -30,8 +30,9 @@ import {
 import { usePathname } from "next/navigation";
 import { FileDetails, ShareInput } from "@/components/ActionsModalContent";
 import { toast } from "sonner";
+import { z, ZodError } from "zod";
 
-const ActionDropdown = ({ file }: { file: FileMeataData }) => {
+const ActionDropdown = ({ file, owner, currentUser }: { file: FileMetadata, owner: string, currentUser: User }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [action, setAction] = useState<ActionType | null>(null);
@@ -73,38 +74,67 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
   }, [showToast])
 
   const path = usePathname();
+  const isShared = currentUser.id !== file.owner;
 
   const closeAllModals = () => {
     setIsModalOpen(false);
     setIsDropdownOpen(false);
     setAction(null);
     setName(file.name);
-    //   setEmails([]);
+    setEmails([]);
   };
+
+  const emailVlidator = z.string().email();
 
   const handleAction = async () => {
     if (!action) return;
     setIsLoading(true);
     let success = false;
-
-    const filePath = await getFilePath({ fileName: file.name, userId: file.owners[0] })
     const actions = {
       rename: async () => {
         const renameResult = await renameFile({ fileId: file.id, name: name })
         if (renameResult.success) {
-          setShowToast({ show: true, type: "success", message: `"${file.name}" renamed to "${(renameResult.data as FileMeataData).name}"` })
-          setIsModalOpen(false);
+          setShowToast({ show: true, type: "success", message: `"${file.name}" renamed to "${(renameResult.data as FileMetadata).name}"` })
         } else {
           setShowToast({ show: true, type: "error", message: `"${file.name}" error: ${renameResult.error}` })
-          setIsModalOpen(false);
         }
+        return true;
       },
-      share: () => updateFileUsers({ fileId: file.id, emails, path }),
+      share: async () => {
+
+        //## validating email format
+        try {
+          emailVlidator.parse(emails[0])
+        } catch (err) {
+          if (err instanceof ZodError) {
+            setShowToast({ show: true, type: "error", message: `${err.issues[0].message}` })
+            return false;
+          }
+        }
+        //## Preventing user to share file with itself!
+        if (emails.includes(currentUser.email)) {
+          setShowToast({ show: true, type: "error", message: `You can't share this file with yourself!` })
+          return false;
+        }
+        //## Preventing user to share a file that is already shared!
+        if (file.shareWith && file.shareWith.includes(emails[0])) {
+          setShowToast({ show: true, type: "error", message: `File Already shared with specified email!` })
+          return false;
+        }
+        const result = await updateFileUsers({ fileMetadata: file, emails: [...file.shareWith, ...emails], path });
+        if (!result?.success) {
+          setShowToast({ show: true, type: "error", message: `Failed to share ${file.name}.` })
+        } else {
+          setShowToast({ show: true, type: "success", message: `${file.name} successfully shared` })
+        }
+        return true;
+      },
       delete: async () => {
-        const result = await deleteFile({ fileId: file.id, filePath: filePath })
+        const result = await deleteFile({ fileMeta: file, user: currentUser })
         if (result.success) {
           setShowToast({ show: true, message: `"${file.name}" deleted successfully!`, type: "success" })
         }
+        return true;
       }
     };
 
@@ -116,23 +146,21 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
   };
 
   const handleRemoveUser = async (email: string) => {
-    const updatedEmails = emails.filter((e) => e !== email);
-
+    const updatedEmails = file.shareWith.filter((e) => e !== email);
     const success = await updateFileUsers({
-      fileId: file.id,
+      fileMetadata: file,
       emails: updatedEmails,
       path,
     });
 
     if (success) setEmails(updatedEmails);
-    closeAllModals();
+    setShowToast({ show: true, type: "success", message: `${email} deleted` })
   };
 
   const renderDialogContent = () => {
     if (!action) return null;
 
     const { value, label } = action;
-
     return (
       <DialogContent className="shad-dialog button">
         <DialogHeader className="flex flex-col gap-3">
@@ -146,7 +174,7 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
               onChange={(e) => setName(e.target.value)}
             />
           )}
-          {value === "details" && <FileDetails file={file} />}
+          {value === "details" && <FileDetails file={file} owner={owner} />}
           {value === "share" && (
             <ShareInput
               file={file}
@@ -191,8 +219,8 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
           <Image
             src="/assets/icons/dots.svg"
             alt="dots"
-            width={34}
-            height={34}
+            width={28}
+            height={28}
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -203,10 +231,10 @@ const ActionDropdown = ({ file }: { file: FileMeataData }) => {
           {actionsDropdownItems.map((actionItem) => (
             <DropdownMenuItem
               key={actionItem.value}
+              disabled={(actionItem.value === "rename" || actionItem.value === "share") ? isShared : false}
               className="shad-dropdown-item"
               onClick={() => {
                 setAction(actionItem);
-
                 if (
                   ["rename", "share", "delete", "details"].includes(
                     actionItem.value,

@@ -8,7 +8,7 @@ declare global {
 
 
   //################  files related types
-  declare type FileType = "document" | "image" | "video" | "audio" | "other";
+  declare type FileType = "document" | "image" | "video" | "audio" | "other" | "shared";
   declare type FileResult = {
     success: true,
     data: unknown,
@@ -27,17 +27,17 @@ declare global {
     fType: FileType,
     url: string,
     size: number,
-    date_added: Date,
+    lastEdit: Date,
     owner: string,
     shareWith: string[]
   }
-  declare interface FileMeataData {
+  declare interface FileMetadata {
     id: string,
     name: string,
     type: FileType,
     url: string,
     size: number,
-    dateAdded: Date,
+    lastEdited: Date,
     owner: string,
     shareWith: string[]
   }
@@ -59,18 +59,20 @@ declare global {
     userId: string;
   }
   declare interface GetFilesProps {
-    userId: string,
-    types: FileType[];
-    searchText?: string;
-    sort?: string;
-    limit?: number;
+    user: User,
+    shared?: boolean
+    types?: string[]
+    searchText?: string
+    sort?: string
+    limit?: number
   }
+
   declare interface RenameFileProps {
     fileId: string;
     name: string;
   }
   declare interface UpdateFileUsersProps {
-    fileId: string;
+    fileMetadata: FileMetadata;
     emails: string[];
     path: string;
   }

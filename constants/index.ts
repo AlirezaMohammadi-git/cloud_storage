@@ -26,6 +26,11 @@ export const navItems = [
     icon: "/assets/icons/others.svg",
     url: "/others",
   },
+  {
+    name: "Shared",
+    icon: "/assets/icons/share-2.svg",
+    url: "/shared",
+  },
 ];
 
 export const actionsDropdownItems = [
@@ -58,33 +63,33 @@ export const actionsDropdownItems = [
 
 export const sortTypes = [
   {
-    label: "Date created (newest)",
-    value: "$createdAt-desc",
+    label: "Date Edited (newest)",
+    value: "lastedit DESC",
   },
   {
-    label: "Created Date (oldest)",
-    value: "$createdAt-asc",
+    label: "Date Edited (oldest)",
+    value: "lastedit ASC",
   },
   {
     label: "Name (A-Z)",
-    value: "name-asc",
+    value: "name ASC",
   },
   {
     label: "Name (Z-A)",
-    value: "name-desc",
+    value: "name DESC",
   },
   {
     label: "Size (Highest)",
-    value: "size-desc",
+    value: "size DESC",
   },
   {
     label: "Size (Lowest)",
-    value: "size-asc",
+    value: "size ASC",
   },
 ];
 
 export const avatarPlaceholderUrl =
-  "https://img.freepik.com/free-psd/3d-illustration-person-with-sunglasses_23-2149436188.jpg";
+  "https://avatar.iran.liara.run/public";
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -113,15 +118,15 @@ export const passwords: Passwords[] = [
   }
 ]
 
-export const exampleFileMetadata: FileMeataData[] = [
+export const exampleFileMetadata: FileMetadata[] = [
   {
     id: "e64c54ae-36ad-4adb-932a-76d949f6104f",
     name: "testMetadata1",
     type: "image",
     size: 400000000,
     url: "null",
-    dateAdded: new Date(),
-    owner: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
+    lastEdited: new Date(),
+    owner: "e64c54ae-36ad-4adb-932a-76d949f61043",
     shareWith: []
   },
   {
@@ -130,7 +135,7 @@ export const exampleFileMetadata: FileMeataData[] = [
     type: "document",
     size: 12345678910,
     url: "null",
-    dateAdded: new Date(),
+    lastEdited: new Date(),
     owner: "55f0ddcf-6b75-4a01-b12d-88e3224d8ec6",
     shareWith: []
   }

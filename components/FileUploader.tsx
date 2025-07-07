@@ -95,7 +95,7 @@ const FileUploader = ({ userId }: { userId: string }) => {
     <div {...getRootProps()}>
       <input {...getInputProps()} />
       {
-        <Button className="uploader-button cursor-pointer">
+        <Button disabled={files.length > 0} className="uploader-button cursor-pointer">
           <Image
             src="/assets/icons/upload.svg"
             alt="upload"

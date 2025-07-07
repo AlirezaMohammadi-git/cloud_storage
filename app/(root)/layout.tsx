@@ -13,8 +13,6 @@ const Layout = async ({ children }: { children: React.ReactNode }) => {
   const session = await auth();
   if (!session) redirect("/sign-in");
   const currentUser: User = session.user;
-
-  //fixme : read nextAuth doc and get customized user form auth session.
   return (
     <main className="flex h-screen">
       <Sidebar {...{ ...currentUser }} />

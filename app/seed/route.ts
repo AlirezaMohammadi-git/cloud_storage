@@ -79,11 +79,11 @@ async function seedFilesMetadata(client: Client) {
     `
     CREATE TABLE IF NOT EXISTS files_metadata (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-      name VARCHAR(255) NOT NULL UNIQUE,
+      name VARCHAR(255) NOT NULL,
       fType fileType NOT NULL,
       url TEXT NOT NULL,
       size BIGINT NOT NULL DEFAULT 0,
-      date_added TIMESTAMP WITH TIME ZONE NOT NULL,
+      lastEdit TIMESTAMP WITH TIME ZONE NOT NULL,
       owner TEXT NOT NULL,
       shareWith TEXT[] NOT NULL
     );
@@ -95,16 +95,16 @@ async function seedFilesMetadata(client: Client) {
     exampleFileMetadata.map(async (meta) => {
       // Convert date to proper timestamp format
       let dateAdded;
-      if (meta.dateAdded instanceof Date) {
-        dateAdded = meta.dateAdded;
-      } else if (typeof meta.dateAdded === 'number') {
-        dateAdded = new Date(meta.dateAdded * 1000); // Convert UNIX timestamp to Date
+      if (meta.lastEdited instanceof Date) {
+        dateAdded = meta.lastEdited;
+      } else if (typeof meta.lastEdited === 'number') {
+        dateAdded = new Date(meta.lastEdited * 1000); // Convert UNIX timestamp to Date
       } else {
         dateAdded = new Date(); // Fallback to current time
       }
 
       return client.query(
-        `INSERT INTO files_metadata (id, name, fType, url, size, date_added,owner,shareWith)
+        `INSERT INTO files_metadata (id, name, fType, url, size, lastEdit,owner,shareWith)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (id) DO NOTHING`,
         [
@@ -125,7 +125,6 @@ async function seedFilesMetadata(client: Client) {
   return insertResults;
 }
 export async function GET() {
-  //todo : seed new table in database and 
   const client = new Client({
     connectionString: 'postgres://joe:helloKitty@localhost:5432/mylocaldatabase'
   });
@@ -143,4 +142,3 @@ export async function GET() {
     client.end()
   }
 }
-// todo : protect this route to be accessable only for admin users.

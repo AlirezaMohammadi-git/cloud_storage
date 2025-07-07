@@ -68,8 +68,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const parsedCredentials = signInSchema.safeParse(c);
           if (parsedCredentials.success) {
             const { getUserFromDb, InsertNewUser, comparePasswords } =
-              await import("./app/lib/actions/user.db");
+              await import("./app/lib/actions/user.db.actions");
             const { email, password, type, fullname } = parsedCredentials.data;
+
 
             if (type === "sign-in") {
               const user = await getUserFromDb(email);

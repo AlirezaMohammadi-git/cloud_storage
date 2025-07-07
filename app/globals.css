@@ -136,7 +136,7 @@
   }
 
   .caption {
-    @apply text-[12px] leading-[16px] font-normal max-w-44 overflow-hidden text-ellipsis;
+    @apply text-[12px] leading-[16px] font-normal max-w-52 overflow-hidden text-ellipsis;
   }
 
   .overline {
@@ -264,7 +264,7 @@
   }
 
   .recent-file-details {
-    @apply flex w-full flex-col xl:flex-row xl:justify-between !important;
+    @apply flex w-full flex-row xl:flex-row justify-between !important;
   }
 
   .recent-file-name {

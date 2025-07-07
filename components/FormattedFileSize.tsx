@@ -4,18 +4,26 @@ import { cn, convertFileSize, formatDateTime } from "@/lib/utils";
 export const FormattedFileSize = ({
   sizeInBytes,
   className,
-  creationDate
+  creationDate,
+  shared
 }: {
   sizeInBytes?: number;
   className?: string;
   creationDate?: Date;
+  shared?: boolean;
 }) => {
   return (
-    <p className={cn("body-1 text-light-200", className)}>
-      {sizeInBytes && convertFileSize(sizeInBytes)}
-      <br />
-      {creationDate && `createdAt : ${formatDateTime(creationDate.toISOString())}`}
-    </p>
+    <>
+      <div className="flex flex-row">
+        <p className={cn("body-1 text-light-200 w-full", className)}>
+          {creationDate && `${formatDateTime(creationDate.toISOString())}${shared ? " - " : ""}`}
+          {sizeInBytes && `${convertFileSize(sizeInBytes)}${shared ? " - " : ""}`}
+          <span className="body-1 text-light-100 caption">
+            {shared && `shared`}
+          </span>
+        </p>
+      </div>
+    </>
   );
 };
 export default FormattedFileSize;
