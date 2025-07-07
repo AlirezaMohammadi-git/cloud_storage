@@ -136,8 +136,8 @@ export const getUsageSummary = async (user: User) => {
 export async function getFilePath({ fileName, userId }: { fileName: string, userId: string }) {
     return path.join(process.cwd(), "uploads", userId, fileName);
 }
-export async function createFileUrl(userId: string, fileName: string) {
-    return path.join("/api", "uploads", userId, fileName);
+export async function createFileUrl(userId: string, fileID: string) {
+    return path.join("/api", "uploads", userId, fileID);
 }
 const handleError = (error: unknown) => {
     console.error("❌ File.Actions:", error);
@@ -220,15 +220,16 @@ export const uploadFile = async ({
         if (fileSize > (remainingUploadSize.data as number)) return { success: false, error: `2GB size limit reached. Couldn't upload "${fileName}"` } as FileResult;
 
         // uploading file metadata first:
+        const metaID = uuidv4();
         const metaData: FileMetadata = {
-            id: uuidv4(),
+            id: metaID,
             name: fileName,
             type: getFileType(fileName).type as FileType,
             size: fileSize,
-            url: await createFileUrl(userId, fileName),
+            url: await createFileUrl(userId, metaID),
             lastEdited: new Date(),
             owner: userId,
-            shareWith: []
+            shareWith: [""]
         }
         const metadata = await uploadFileMetaData(metaData);
         if (!metadata?.success) return metadata as FileResult;
@@ -246,7 +247,7 @@ export const uploadFile = async ({
 };
 
 // ################### READ
-async function getFileMetadata(fileId: string): Promise<FileResult> {
+export async function getFileMetadata(fileId: string): Promise<FileResult> {
     try {
         const query = await pool.query(`SELECT * FROM files_metadata WHERE id=$1;`, [fileId])
         const meta = query.rows[0];
@@ -254,12 +255,12 @@ async function getFileMetadata(fileId: string): Promise<FileResult> {
         const dtoMeta = {
             id: meta.id,
             name: meta.name,
-            lastEdited: meta.lastEdit,
+            lastEdited: meta.lastedit,
             owner: meta.owner,
             size: meta.size,
-            type: meta.fType,
+            type: meta.ftype,
             url: meta.url,
-            shareWith: meta.shareWith
+            shareWith: meta.sharewith
         } as FileMetadata;
         return { success: true, data: dtoMeta } as FileResult;
     } catch (err) {

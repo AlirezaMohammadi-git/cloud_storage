@@ -81,8 +81,6 @@ const Dashboard = async () => {
               <ul className="mt-5 flex flex-col gap-5">
                 {(files.data as FileMetadata[]).map(async (file: FileMetadata) => {
 
-                  const fileURL = await createFileUrl(session.user.id, file.name);
-
                   const ownerName = await getUserNameById(file.owner, session.user)
 
                   return (
@@ -96,7 +94,7 @@ const Dashboard = async () => {
                       />
 
                       <Link
-                        href={fileURL}
+                        href={file.url}
                         target="_blank"
                         key={file.id}
                         className="recent-file-details">
